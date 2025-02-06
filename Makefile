@@ -76,7 +76,8 @@ COMP_FCLEAN		:=	$(ECHO) $(DELETION) $(PROJECT_NAME) $(NAME_FILE) $(COMPLETE)
 define HELP_MSG
 Usage: make [TARGET]
 		all         - Build the main program
-		debug	    - Activate debug flags
+		bonus       - Build the bonus part of the program
+		debug       - Activate debug flags
 		clean       - Remove object file(s)
 		fclean      - Remove object file(s) and binary file(s)
 		re          - Rebuild the program
@@ -114,6 +115,8 @@ fclean:				clean
 					@$(COMP_FCLEAN)
 
 re:					fclean all
+
+bonus:				all
 
 help:
 					$(HELP)
