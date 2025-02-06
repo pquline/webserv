@@ -24,7 +24,8 @@ SRCS			:=	$(addprefix $(SRCS_DIR), $(SRC))
 OBJS_DIR		:=	objs/
 OBJS			:=	$(addprefix $(OBJS_DIR), $(SRC:.cpp=.o))
 
-DEPS			:=	$(OBJS:.o=.d)
+DEPS_DIR		:=	deps/
+DEPS			:=	$(addprefix $(DEPS_DIR), $(SRC:.cpp=.d))
 
 # ----------------------------------- FLAGS ---------------------------------- #
 
@@ -33,8 +34,9 @@ CPPFLAGS		+=	-Wall
 CPPFLAGS		+=	-Wextra
 CPPFLAGS		+=	-Werror
 CPPFLAGS		+=	-Wconversion
-CPPFLAGS		+=	-MMD
-CPPFLAGS		+=	-MP
+
+DEPFLAGS		+=	-MMD
+DEPFLAGS		+=	-MP
 
 DEBUGFLAGS		+=	-g3
 
@@ -89,8 +91,8 @@ HELP			:=	@$(ECHO) "$$HELP_MSG"
 # ---------------------------------------------------------------------------- #
 
 $(OBJS_DIR)%.o:		$(SRCS_DIR)%.cpp
-					@$(MKDIR) $(dir $@)
-					@$(CPP) $(CPPFLAGS) -I $(INCLUDES) -c $< -o $@
+					@$(MKDIR) $(dir $@) $(DEPS_DIR)
+					@$(CPP) $(CPPFLAGS) $(DEPFLAGS) -I $(INCLUDES) -MF $(DEPS_DIR)$*.d -c $< -o $@
 
 all:				$(NAME)
 
@@ -104,6 +106,7 @@ debug:
 
 clean:
 					@$(RM) $(OBJS_DIR)
+					@$(RM) $(DEPS_DIR)
 					@$(COMP_CLEAN)
 
 fclean:				clean
