@@ -123,4 +123,4 @@ help:
 
 -include			$(DEPS)
 
-.PHONY:				all debug clean fclean re help
+.PHONY:				all debug clean fclean re bonus help
