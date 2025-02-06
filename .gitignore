@@ -1,6 +1,9 @@
 # WEBSERV
 webserv
 
+# Environment
+.vscode
+
 # Prerequisites
 *.d
 
