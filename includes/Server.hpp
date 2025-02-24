@@ -2,21 +2,28 @@
 #define SERVER_HPP
 
 # include <iostream>
+# include <cstdlib>
 # include <string>
+# include <cstring>
+# include <sys/socket.h>
+# include <netinet/in.h>
+# include <unistd.h>
 
 class Server
 {
 	private:
 
-		std::string m_port;
+		int m_port;
+		int m_sockFd;
+		struct sockaddr_in m_address;
 
 	public:
 
-		Server(const std::string &port);
+		Server(int port);
 		virtual ~Server ();
 
-		int init();
-
+		void init();
+		void run();
 };
 
 #endif /* SERVER_HPP */
