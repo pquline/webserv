@@ -2,10 +2,13 @@
 #define SERVER_HPP
 
 # include <iostream>
+# include <vector>
 # include <cstdlib>
 # include <string>
 # include <cstring>
+# include <fcntl.h>
 # include <sys/socket.h>
+# include <sys/select.h>
 # include <netinet/in.h>
 # include <unistd.h>
 
