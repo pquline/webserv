@@ -8,7 +8,7 @@ void	parse_configuration_file(std::string file)
 		throw std::invalid_argument(ERROR_USAGE);
 }
 
-int	main(int argc, char **argv)
+/*int	main(int argc, char **argv)
 {
 	try
 	{
@@ -20,7 +20,13 @@ int	main(int argc, char **argv)
 	}
 	catch (const std::exception &e)
 	{
-		std::cerr << COLOR_RED ERROR_PREFIX COLOR_NONE << e.what() << std::endl;
+		std::cerr << RED << ERROR_PREFIX << e.what() << RESET << std::endl;
 		return (EXIT_FAILURE);
-	}
+	}*/
+int main()
+{
+	Server server(8080);
+	server.init();
+	server.run();
+	return 0;
 }

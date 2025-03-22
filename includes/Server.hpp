@@ -11,18 +11,20 @@
 # include <sys/select.h>
 # include <netinet/in.h>
 # include <unistd.h>
+# include <webserv.hpp>
 
 class Server
 {
 	private:
 
-		int m_port;
+		uint16_t m_port;
 		int m_sockFd;
 		struct sockaddr_in m_address;
+		socklen_t m_addressLen;
 
 	public:
 
-		Server(int port);
+		Server(uint16_t port);
 		virtual ~Server ();
 
 		void init();

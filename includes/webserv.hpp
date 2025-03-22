@@ -12,13 +12,20 @@
 #include <list>
 #include <set>
 #include <map>
+#include "Server.hpp"
 
-#define COLOR_RED		"\e[1\e[31m"
-#define COLOR_GREEN		"\e[1\e[32m"
-#define COLOR_YELLOW	"\e[1\e[33m"
-#define COLOR_BLUE		"\e[1\e[34m"
-#define COLOR_PURPLE	"\e[1\e[35m"
-#define COLOR_NONE		"\e[0m"
+# define RED "\033[31m"
+# define GREEN "\033[32m"
+# define YELLOW "\033[33m"
+# define BLUE "\033[34m"
+# define MAGENTA "\033[35m"
+# define CYAN "\033[36m"
+# define GRAY "\033[90m"
+# define BOLD "\033[1m"
+# define UNDER "\033[4m"
+# define BLINK "\033[5m"
+# define ERASE = "\033[2K\r"
+# define RESET "\033[0m"
 
 #define ERROR_PREFIX	"[Error]: "
 #define ERROR_USAGE		"Usage: ./webserv [file.conf]"
