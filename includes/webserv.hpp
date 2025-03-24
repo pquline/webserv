@@ -12,6 +12,7 @@
 #include <vector>
 #include <list>
 #include <set>
+#include <sys/epoll.h>
 #include <map>
 #include "Server.hpp"
 

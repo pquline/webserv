@@ -13,12 +13,15 @@
 # include <unistd.h>
 # include "webserv.hpp"
 
+# define MAX_EVENT 10
+# define BUFFER_SIZE 1024
+
 class Server
 {
 	private:
 
 		uint16_t	m_port;
-		int			m_sockFd;
+		int			m_serverFd;
 		struct		sockaddr_in m_address;
 		socklen_t	m_addressLen;
 
@@ -30,6 +33,7 @@ class Server
 		void	init();
 		void	run();
 		void	handleError(const std::string& msg);
+		void	setNonBlocking(int fd);
 };
 
 #endif /* SERVER_HPP */
