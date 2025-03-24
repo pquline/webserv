@@ -70,7 +70,22 @@ void Server::run()
 					continue;
 				}
 				std::cout << "Recieved request:\n" << buffer << std::endl;
-				std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 51\r\nContent-Type: text/html\r\n\r\n<h1>This is the beginning of my grand conquest!<h1>";
+			//	std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 51\r\nContent-Type: text/html\r\n\r\n<h1>This is the beginning of my grand conquest!<h1>";
+				std::string response =
+					"HTTP/1.1 200 OK\r\n"
+					"Content-Type: text/html\r\n"
+					"Content-Length: 180\r\n"
+					"\r\n"
+					"<!DOCTYPE html>"
+					"<html><body><h1>Hey, welcome to my homepage :)</h1>"
+					"<form method='POST' action='/submit'>"
+					"Name: <input type='text' name='name'><br>"
+					"<input type='submit' value='Submit'>"
+					"</form>"
+					"</body></html>";
+
+				send(eventFd, response.c_str(), response.size(), 0);
+
 				send(connFd, response.c_str(), response.size(), 0);
 				close(eventFd);
 				epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);

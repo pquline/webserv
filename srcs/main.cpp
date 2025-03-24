@@ -25,7 +25,7 @@ void	parse_configuration_file(std::string file)
 	}*/
 int main()
 {
-	Server server(8080);
+	Server server(8088);
 	server.init();
 	server.run();
 	return 0;
