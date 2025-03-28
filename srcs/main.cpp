@@ -23,9 +23,15 @@ void	parse_configuration_file(std::string file)
 		std::cerr << RED << ERROR_PREFIX << e.what() << RESET << std::endl;
 		return (EXIT_FAILURE);
 	}*/
-int main()
+int main(int argc, char** argv)
 {
-	Server server(8088);
+	if (argc != 2)
+	{
+		std::cout << "Usage: ./webserv port_to_listen" << std::endl;
+		return 0;
+	}
+	int port = std::atoi(argv[1]);
+	Server server((uint16_t)port);
 	server.init();
 	server.run();
 	return 0;

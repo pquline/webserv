@@ -61,7 +61,6 @@ void Server::run()
 			else
 			{
 				char buffer[BUFFER_SIZE] = {0};
-				//int bytesRead = read(eventFd, buffer, BUFFER_SIZE);
 
 				if (read(eventFd, buffer, BUFFER_SIZE) < 0)
 				{
@@ -70,32 +69,12 @@ void Server::run()
 					continue;
 				}
 				std::cout << "Recieved request:\n" << buffer << std::endl;
-			//	std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 51\r\nContent-Type: text/html\r\n\r\n<h1>This is the beginning of my grand conquest!<h1>";
-			/*	std::string response =
-					"HTTP/1.1 200 OK\r\n"
-					"Content-Type: text/html\r\n"
-					"Content-Length: 180\r\n"
-					"\r\n"
-					"<!DOCTYPE html>"
-					"<html><body><h1>Hey, welcome to my homepage :)</h1>"
-					"<form method='POST' action='/submit'>"
-					"Name: <input type='text' name='name'><br>"
-					"<input type='submit' value='Submit'>"
-					"</form>"
-					"</body></html>";*/
-				/*std::ifstream file("../pages/default.html");
-				std::string response((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());*/
 
-
-
-
-
-
-				std::ifstream file("pages/test.html");
+				std::ifstream file("pages/default.html");
 				if (!file)
 				{
 					close(eventFd);
-					handleError("test.html");
+					handleError("default.html");
 				}
 
 				std::stringstream buf;
@@ -120,20 +99,6 @@ void Server::run()
 				epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
 			}
 		}
-		/*	m_addressLen = sizeof(m_address);
-			int connFd = accept(m_serverFd, (struct sockaddr*)&m_address, &m_addressLen);
-			if (connFd < 0)
-			{
-			if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
-			continue;
-			else
-			handleError("Accepting connection failed");
-			}
-
-			std::cout << "New client connected!" << std::endl;
-			std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 51\r\nContent-Type: text/html\r\n\r\n<h1>This is the beginning of my grand conquest!<h1>";
-			send(connFd, response.c_str(), response.size(), 0);
-			close(connFd);*/
 	}
 	close(epollFd);
 }
