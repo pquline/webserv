@@ -11,6 +11,8 @@
 # include <sys/select.h>
 # include <netinet/in.h>
 # include <unistd.h>
+# include <sstream>
+# include <sstream>
 # include "webserv.hpp"
 
 # define MAX_EVENT 10

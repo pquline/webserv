@@ -71,7 +71,7 @@ void Server::run()
 				}
 				std::cout << "Recieved request:\n" << buffer << std::endl;
 			//	std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 51\r\nContent-Type: text/html\r\n\r\n<h1>This is the beginning of my grand conquest!<h1>";
-				std::string response =
+			/*	std::string response =
 					"HTTP/1.1 200 OK\r\n"
 					"Content-Type: text/html\r\n"
 					"Content-Length: 180\r\n"
@@ -82,10 +82,39 @@ void Server::run()
 					"Name: <input type='text' name='name'><br>"
 					"<input type='submit' value='Submit'>"
 					"</form>"
-					"</body></html>";
+					"</body></html>";*/
+				/*std::ifstream file("../pages/default.html");
+				std::string response((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());*/
+
+
+
+
+
+
+				std::ifstream file("pages/test.html");
+				if (!file)
+				{
+					close(eventFd);
+					handleError("test.html");
+				}
+
+				std::stringstream buf;
+				buf << file.rdbuf(); 
+				file.close();
+
+				std::string html = buf.str(); 
+
+				std::ostringstream ss;
+				ss << html.size();
+				std::string strSize = ss.str();
+				std::string response =
+					"HTTP/1.1 200 OK\r\n"
+					"Content-Type: text/html\r\n"
+					"Content-Length: " + strSize + "\r\n"
+					"\r\n" +
+					html;
 
 				send(eventFd, response.c_str(), response.size(), 0);
-
 				send(connFd, response.c_str(), response.size(), 0);
 				close(eventFd);
 				epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
