@@ -62,7 +62,7 @@ void Server::run()
 			{
 				char buffer[BUFFER_SIZE] = {0};
 
-				if (read(eventFd, buffer, BUFFER_SIZE) < 0)
+				if (read(eventFd, buffer, BUFFER_SIZE) <= 0)
 				{
 					close(eventFd);
 					epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
@@ -94,7 +94,6 @@ void Server::run()
 					html;
 
 				send(eventFd, response.c_str(), response.size(), 0);
-				send(connFd, response.c_str(), response.size(), 0);
 				close(eventFd);
 				epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
 			}
@@ -113,5 +112,7 @@ void	Server::handleError(const std::string& msg)
 void	Server::setNonBlocking(int fd)
 {
 	int flags = fcntl(fd, F_GETFL, 0);
-	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+	if (flags == -1) handleError("fcntl F_GETFL");
+
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) handleError("fcntl F_SETFL");
 }
