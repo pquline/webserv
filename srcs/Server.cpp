@@ -46,6 +46,8 @@ void Server::run()
 			handleError("epoll_wait");
 		for (int i = 0; i < nfds; i++) {
 			int eventFd = events[i].data.fd;
+			// here we get a fd which we should read to get request info
+			// /r/n/r/n means the end of the header
 			if (eventFd == m_serverFd)
 			{
 				m_addressLen = sizeof(m_address);
@@ -60,6 +62,7 @@ void Server::run()
 			}
 			else
 			{
+				/*
 				char buffer[BUFFER_SIZE] = {0};
 
 				if (read(eventFd, buffer, BUFFER_SIZE) <= 0)
@@ -68,7 +71,7 @@ void Server::run()
 					epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
 					continue;
 				}
-				std::cout << "Recieved request:\n" << buffer << std::endl;
+				std::cout << "Recieved request:\n" << buffer << std::endl;*/
 
 				std::ifstream file("pages/default.html");
 				if (!file)
@@ -88,10 +91,8 @@ void Server::run()
 				std::string strSize = ss.str();
 				std::string response =
 					"HTTP/1.1 200 OK\r\n"
-					"Content-Type: text/html\r\n"
 					"Content-Length: " + strSize + "\r\n"
-					"\r\n" +
-					html;
+					"Content-Type: text/html\r\n\r\n" + html;
 
 				send(eventFd, response.c_str(), response.size(), 0);
 				close(eventFd);
