@@ -7,13 +7,13 @@
     <style>
         body {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             height: 100vh;
             margin: 0;
             font-family: Arial, sans-serif;
             background-color: #343434;
-            transition: background-color 0.5s;
         }
         .container {
             background: #F9F6EE;
@@ -22,6 +22,7 @@
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
             text-align: center;
             width: 300px;
+            margin-bottom: 20px;
         }
         input, select {
             width: 100%;
@@ -42,14 +43,38 @@
         button:hover {
             background-color: #0056b3;
         }
-        #message {
-            margin-top: 15px;
+        .links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            width: 320px;
+        }
+        .link-box {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 150px;
             font-weight: bold;
-            color: #007BFF;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.3s;
+        }
+        .link-box:hover {
+            background-color: #007BFF;
+            color: white;
+            transform: scale(1.05);
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+            display: block;
         }
     </style>
 </head>
 <body>
+
     <div class="container">
         <h2>Welcome! Who are you?</h2>
         <form id="infoForm">
@@ -73,10 +98,21 @@
         <p id="message"></p>
     </div>
 
+    <div class="links">
+        <a href="whoAreWe.html">
+            <div class="link-box">Who are we?</div>
+        </a>
+        <a href="books.html">
+            <div class="link-box">Book Recommendations</div>
+        </a>
+        <a href="random.html">
+            <div class="link-box">Random Number</div>
+        </a>
+    </div>
+
     <script>
         document.getElementById("infoForm").addEventListener("submit", function(event) {
-            event.preventDefault(); 
-
+            event.preventDefault();
             let name = document.getElementById("name").value;
             let school = document.getElementById("school").value;
             let region = document.getElementById("region").value;
@@ -88,5 +124,6 @@
             document.body.style.backgroundColor = color.toLowerCase();
         });
     </script>
+
 </body>
 </html>

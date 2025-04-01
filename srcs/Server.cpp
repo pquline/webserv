@@ -73,7 +73,7 @@ void Server::run()
 				}
 				std::cout << "Recieved request:\n" << buffer << std::endl;*/
 
-				std::ifstream file("pages/default.html");
+				std::ifstream file("pages/interactivePage.html");
 				if (!file)
 				{
 					close(eventFd);
