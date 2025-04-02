@@ -30,77 +30,105 @@ void Server::init()
 
 void Server::run()
 {
-	int epollFd = epoll_create1(0);
-	if (epollFd < 0)
-		handleError("epoll_create1 failed");
-	struct epoll_event ev, events[MAX_EVENT];
-	ev.events = EPOLLIN;
-	ev.data.fd = m_serverFd;
-	if (epoll_ctl(epollFd, EPOLL_CTL_ADD, m_serverFd, &ev) < 0)
-		handleError("epoll_ctl: server socket");
-	int nfds, connFd;
-	while (true)
-	{
-		nfds = epoll_wait(epollFd, events, MAX_EVENT, -1);
-		if (nfds < 0)
-			handleError("epoll_wait");
-		for (int i = 0; i < nfds; i++) {
-			int eventFd = events[i].data.fd;
-			// here we get a fd which we should read to get request info
-			// /r/n/r/n means the end of the header
-			if (eventFd == m_serverFd)
-			{
-				m_addressLen = sizeof(m_address);
-				connFd = accept(m_serverFd, (struct sockaddr*)&m_address, &m_addressLen);
-				if (connFd < 0)
-					handleError("accept");
-				setNonBlocking(connFd);
-				ev.events = EPOLLIN | EPOLLET;
-				ev.data.fd = connFd;
-				if (epoll_ctl(epollFd, EPOLL_CTL_ADD, connFd, &ev) < 0)
-					handleError("epoll_ctl: client socket");
-			}
-			else
-			{
-				/*
-				char buffer[BUFFER_SIZE] = {0};
+    int epollFd = epoll_create1(0);
+    if (epollFd < 0)
+        handleError("epoll_create1 failed");
+    
+    struct epoll_event ev, events[MAX_EVENT];
+    ev.events = EPOLLIN;
+    ev.data.fd = m_serverFd;
+    
+    if (epoll_ctl(epollFd, EPOLL_CTL_ADD, m_serverFd, &ev) < 0)
+        handleError("epoll_ctl: server socket");
+    
+    int nfds, connFd;
+    while (true)
+    {
+        nfds = epoll_wait(epollFd, events, MAX_EVENT, -1);
+        if (nfds < 0)
+            handleError("epoll_wait");
+        
+        for (int i = 0; i < nfds; i++) {
+            int eventFd = events[i].data.fd;
+            
+            if (eventFd == m_serverFd)
+            {
+                m_addressLen = sizeof(m_address);
+                connFd = accept(m_serverFd, (struct sockaddr*)&m_address, &m_addressLen);
+                if (connFd < 0)
+                    handleError("accept");
+                setNonBlocking(connFd);
+                ev.events = EPOLLIN | EPOLLET;
+                ev.data.fd = connFd;
+                if (epoll_ctl(epollFd, EPOLL_CTL_ADD, connFd, &ev) < 0)
+                    handleError("epoll_ctl: client socket");
+            }
+            else
+            {
+                char buffer[BUFFER_SIZE] = {0};
+                ssize_t bytesRead = read(eventFd, buffer, BUFFER_SIZE - 1);
+                
+                if (bytesRead <= 0)
+                {
+                    close(eventFd);
+                    epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
+                    continue;
+                }
 
-				if (read(eventFd, buffer, BUFFER_SIZE) <= 0)
-				{
-					close(eventFd);
-					epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
-					continue;
-				}
-				std::cout << "Recieved request:\n" << buffer << std::endl;*/
+                std::string request(buffer, static_cast<size_t>(bytesRead));
+    			std::string requestedPath = "/interactivepage.html"; 
 
-				std::ifstream file("pages/interactivepage.html");
-				if (!file)
-				{
-					close(eventFd);
-					handleError("default.html");
-				}
+                size_t start = request.find(' ') + 1;
+                size_t end = request.find(' ', start);
+                if (start != std::string::npos && end != std::string::npos)
+                {
+                    requestedPath = request.substr(start, end - start);
+                    if (requestedPath == "/") 
+                        requestedPath = "/interactivepage.html";
+                }
 
-				std::stringstream buf;
-				buf << file.rdbuf(); 
-				file.close();
+                std::string filePath = "pages" + requestedPath;
 
-				std::string html = buf.str(); 
+                std::ifstream file(filePath.c_str());
+                if (!file)
+                {
+                    std::string notFound = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
+                    send(eventFd, notFound.c_str(), notFound.size(), 0);
+                }
+                else
+                {
+                    std::stringstream buf;
+                    buf << file.rdbuf();
+                    file.close();
 
-				std::ostringstream ss;
-				ss << html.size();
-				std::string strSize = ss.str();
-				std::string response =
-					"HTTP/1.1 200 OK\r\n"
-					"Content-Length: " + strSize + "\r\n"
-					"Content-Type: text/html\r\n\r\n" + html;
+                    std::string content = buf.str();
+                    std::ostringstream ss;
+                    ss << content.size();
 
-				send(eventFd, response.c_str(), response.size(), 0);
-				close(eventFd);
-				epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
-			}
-		}
-	}
-	close(epollFd);
+                    std::string contentType = "text/html";
+                    if (requestedPath.find(".css") != std::string::npos)
+                        contentType = "text/css";
+                    else if (requestedPath.find(".js") != std::string::npos)
+                        contentType = "application/javascript";
+                    else if (requestedPath.find(".png") != std::string::npos)
+                        contentType = "image/png";
+                    else if (requestedPath.find(".jpg") != std::string::npos)
+                        contentType = "image/jpeg";
+
+                    std::string response =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Length: " + ss.str() + "\r\n"
+                        "Content-Type: " + contentType + "\r\n\r\n" + content;
+
+                    send(eventFd, response.c_str(), response.size(), 0);
+                }
+
+                close(eventFd);
+                epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
+            }
+        }
+    }
+    close(epollFd);
 }
 
 void	Server::handleError(const std::string& msg)
