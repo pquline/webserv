@@ -1,27 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Information</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
+    <!-- ... head existant ... -->
+    <script>
+        function loadUserData() {
+            fetch('/userdata.json')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('user-data');
+                    container.innerHTML = `
+                        <h2>${data.firstname} ${data.lastname}</h2>
+                        <p>Age: ${data.age}</p>
+                        <p>School: ${data.school || 'Not specified'}</p>
+                        <p>Favorite Color: ${data.color}</p>
+                        <p>Birthday: ${data.birthday}</p>
+                    `;
+                })
+                .catch(error => {
+                    document.getElementById('user-data').innerHTML = 
+                        '<p>No user data found. Please fill the <a href="/editmyinfo.html">form</a> first.</p>';
+                });
         }
-        .back-button {
-            padding: 8px 16px;
-            background-color: #f44336;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-        }
-    </style>
+    </script>
 </head>
-<body>
-    <a href="interactivepage.html" class="back-button">Back</a>
+<body onload="loadUserData()">
+    <a href="index.html" class="back-button">Back</a>
     <h1>My Information</h1>
-    <p>This page would display your user information.</p>
-    <!-- Add your user information display here -->
+    <div id="user-data">
+        <p>Loading your data...</p>
+    </div>
 </body>
 </html>

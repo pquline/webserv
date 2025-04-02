@@ -145,3 +145,4 @@ void	Server::setNonBlocking(int fd)
 
     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) handleError("fcntl F_SETFL");
 }
+

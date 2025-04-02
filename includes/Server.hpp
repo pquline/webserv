@@ -36,6 +36,10 @@ class Server
 		void	run();
 		void	handleError(const std::string& msg);
 		void	setNonBlocking(int fd);
-};
+		void 	handlePostRequest(int eventFd, const std::string& request);
+		void 	handleGetRequest(int eventFd, const std::string& request);
+		void 	handleDeleteRequest(int eventFd, const std::string& request);
 
-#endif /* SERVER_HPP */
+		void	handleErrorResponse(int eventFd, const std::string& error);
+};
+#endif 
