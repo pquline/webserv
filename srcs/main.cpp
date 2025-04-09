@@ -27,7 +27,7 @@ int	main(int argc, char **argv)
 	}
 	catch (const std::exception &e)
 	{
-		std::cerr << RED << ERROR_PREFIX RESET << e.what() << std::endl;
+		std::cerr << RED << ERROR_PREFIX << e.what() << RESET << std::endl;
 		if (!servers.empty())
 			delete_servers(servers);
 		return (EXIT_FAILURE);

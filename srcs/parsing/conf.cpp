@@ -7,29 +7,13 @@ void	check_conf_pathname(const std::string& pathname)
 		throw std::invalid_argument(ERROR_USAGE);
 }
 
-void	parse_conf_file(const std::string& file, std::vector<Server *> &servers)
-{
-	std::string	content = get_conf_content(file);
-
-	if (!curly_brackets_are_matched(content))
-		throw std::invalid_argument(PARSING_UNMATCHED_BRACKET);
-	for (size_t index = 0; index < content.size(); index++)
-	{
-		while (isspace(content[index]))
-			index++;
-		if (content.compare(index, SIZE_SERVER, SERVER_BLOCK_NAME) != 0)
-			throw std::invalid_argument(PARSING_UNEXPECTED);
-		servers.push_back(get_server(get_server_block(content, index)));
-	}
-}
-
 static std::string	get_conf_content(const std::string& file)
 {
 	std::ifstream	conf(file.c_str());
 	std::stringstream buffer;
 
 	if (conf.is_open() == false)
-		throw std::invalid_argument(ERROR_OPEN COLOR_RED + file + COLOR_NONE);
+		throw std::invalid_argument(ERROR_OPEN + file);
 
 	buffer << conf.rdbuf();
 	conf.close();
@@ -332,7 +316,7 @@ static void	parse_location(const std::string& directive, \
 	while (isspace(directive[index]))
 		index++;
 	index += sizeof('{');
-	std::cerr << COLOR_BLUE "[DEBUG]: LOCATION " << uri << COLOR_NONE << std::endl;
+	//std::cerr << COLOR_BLUE "[DEBUG]: LOCATION " << uri << COLOR_NONE << std::endl;
 	while (index < directive.size() && directive[index] != '}')
 	{
 		while (index < directive.size() && (isspace(directive[index]) || directive[index] == '}'))
@@ -367,7 +351,7 @@ Server	*get_server(std::string data)
 	std::map<unsigned int, std::string>	error_pages;
 	std::map<std::string, Location *>	locations;
 
-	std::cerr << COLOR_YELLOW "[DEBUG]: SERVER" COLOR_NONE << std::endl;
+	//std::cerr << YELLOW << "[DEBUG]: SERVER" << RESET << std::endl;
 	for (size_t index = 0; data[index]; (void)0)
 	{
 		while (index < data.size() && (isspace(data[index]) || data[index] == '}'))
@@ -424,4 +408,20 @@ static bool	curly_brackets_are_matched(const std::string& content)
 			curly_brackets--;
 	}
 	return (curly_brackets == 0);
+}
+
+void	parse_conf_file(const std::string& file, std::vector<Server *> &servers)
+{
+	std::string	content = get_conf_content(file);
+
+	if (curly_brackets_are_matched(content) == false)
+		throw std::invalid_argument(PARSING_UNMATCHED_BRACKET);
+	for (size_t index = 0; index < content.size(); index++)
+	{
+		while (isspace(content[index]))
+			index++;
+		if (content.compare(index, SIZE_SERVER, SERVER_BLOCK_NAME) != 0)
+			throw std::invalid_argument(PARSING_UNEXPECTED);
+		servers.push_back(get_server(get_server_block(content, index)));
+	}
 }

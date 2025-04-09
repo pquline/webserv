@@ -19,6 +19,8 @@
 # define MAX_EVENT 10
 # define BUFFER_SIZE 1024
 
+class Location;
+
 class Server
 {
 	private:
