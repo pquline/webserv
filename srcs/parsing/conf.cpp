@@ -423,5 +423,7 @@ void	parse_conf_file(const std::string& file, std::vector<Server *> &servers)
 		if (content.compare(index, SIZE_SERVER, SERVER_BLOCK_NAME) != 0)
 			throw std::invalid_argument(PARSING_UNEXPECTED);
 		servers.push_back(get_server(get_server_block(content, index)));
+		servers.back()->init();
+		servers.back()->run();
 	}
 }
