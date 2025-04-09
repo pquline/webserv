@@ -65,6 +65,7 @@ void Server::run()
             }
             else
             {
+                
                 char buffer[BUFFER_SIZE] = {0};
                 ssize_t bytesRead = read(eventFd, buffer, BUFFER_SIZE - 1);
                 
@@ -74,54 +75,7 @@ void Server::run()
                     epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
                     continue;
                 }
-
-                std::string request(buffer, static_cast<size_t>(bytesRead));
-    			std::string requestedPath = "/interactivepage.html"; 
-
-                size_t start = request.find(' ') + 1;
-                size_t end = request.find(' ', start);
-                if (start != std::string::npos && end != std::string::npos)
-                {
-                    requestedPath = request.substr(start, end - start);
-                    if (requestedPath == "/") 
-                        requestedPath = "/interactivepage.html";
-                }
-
-                std::string filePath = "pages" + requestedPath;
-
-                std::ifstream file(filePath.c_str());
-                if (!file)
-                {
-                    std::string notFound = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
-                    send(eventFd, notFound.c_str(), notFound.size(), 0);
-                }
-                else
-                {
-                    std::stringstream buf;
-                    buf << file.rdbuf();
-                    file.close();
-
-                    std::string content = buf.str();
-                    std::ostringstream ss;
-                    ss << content.size();
-
-                    std::string contentType = "text/html";
-                    if (requestedPath.find(".css") != std::string::npos)
-                        contentType = "text/css";
-                    else if (requestedPath.find(".js") != std::string::npos)
-                        contentType = "application/javascript";
-                    else if (requestedPath.find(".png") != std::string::npos)
-                        contentType = "image/png";
-                    else if (requestedPath.find(".jpg") != std::string::npos)
-                        contentType = "image/jpeg";
-
-                    std::string response =
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Length: " + ss.str() + "\r\n"
-                        "Content-Type: " + contentType + "\r\n\r\n" + content;
-
-                    send(eventFd, response.c_str(), response.size(), 0);
-                }
+                Server::startParsing(eventFd, bytesRead, buffer);
 
                 close(eventFd);
                 epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);

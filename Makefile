@@ -6,7 +6,7 @@ NAME			:=	webserv
 
 # ---------------------------------- PROGRAM --------------------------------- #
 
-SRC				+=	main.cpp Server.cpp
+SRC				+=	main.cpp Server.cpp parsing_request.cpp
 
 # --------------------------------- COMMANDS --------------------------------- #
 

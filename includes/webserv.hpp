@@ -27,7 +27,7 @@
 # define UNDER "\033[4m"
 # define BLINK "\033[5m"
 # define ERASE = "\033[2K\r"
-# define RESET "\033[0m"
+# define RESET "\e[0m"
 
 #define ERROR_PREFIX	"[Error]: "
 #define ERROR_USAGE		"Usage: ./webserv [file.conf]"
@@ -35,3 +35,5 @@
 #define DEFAULT_CONF	"webserv.conf"
 #define CONF_EXTENSION	".conf"
 #define SIZE_EXTENSION	5
+
+#define ROOT_PATH "index.html"
