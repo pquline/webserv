@@ -5,6 +5,8 @@ void 	Server::handlePostRequest(int eventFd, const std::string& request)
     (void)eventFd;
     (void)request;
     std::cerr << GREEN << "prout POST" << RESET << std::endl;
+    std::string response = "pages/index.html";
+    send(eventFd, response.c_str(), response.size(), 0);
 }
 
 void 	Server::handleGetRequest(int eventFd, const std::string& request)
@@ -20,4 +22,3 @@ void 	Server::handleDeleteRequest(int eventFd, const std::string& request)
     (void)request;
     std::cerr << GRAY << "prout DELETE" << RESET << std::endl;    
 }
-
