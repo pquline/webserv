@@ -37,3 +37,6 @@
 #define SIZE_EXTENSION	5
 
 #define ROOT_PATH "index.html"
+#define GOOD_HTTP_VERSION "HTTP/1.1"
+
+std::vector<std::string> ft_split(const std::string& str, char delimiter);

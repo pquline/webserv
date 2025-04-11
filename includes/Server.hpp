@@ -14,6 +14,7 @@
 # include <sstream>
 # include <sstream>
 # include "webserv.hpp"
+# include "http_request.hpp"
 
 # define MAX_EVENT 10
 # define BUFFER_SIZE 1024
@@ -39,9 +40,9 @@ class Server
 
 		void	startParsing(int eventFd, ssize_t bytesRead,char *buffer);
 
-		void 	handlePostRequest(int eventFd, const std::string& request);
-		void 	handleGetRequest(int eventFd, const std::string& request);
-		void 	handleDeleteRequest(int eventFd, const std::string& request);
+		void 	handlePostRequest(int eventFd, std::string& request);
+		void 	handleGetRequest(int eventFd, std::string& request);
+		void 	handleDeleteRequest(int eventFd, std::string& request);
 
 		void	handleErrorResponse(int eventFd, const std::string& error);
 };
