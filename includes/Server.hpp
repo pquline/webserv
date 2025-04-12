@@ -15,6 +15,7 @@
 # include <sstream>
 # include "webserv.hpp"
 # include "http_request.hpp"
+# include "response.hpp"
 
 # define MAX_EVENT 10
 # define BUFFER_SIZE 1024

@@ -111,12 +111,12 @@ std::map<std::string, std::string> Http_request::parse_headers(std::string& requ
     }
 
     // Boucle pour test
-    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); 
-         it != headers.end(); ++it) 
-    {
-        std::cout << MAGENTA << "[" << it->first << "]" << CYAN << " " << it->second << RESET << std::endl;
-    }
-    std::cerr << std::endl;
+    // for (std::map<std::string, std::string>::const_iterator it = headers.begin(); 
+    //      it != headers.end(); ++it) 
+    // {
+    //     std::cout << YELLOW << "[" << it->first << "]" << CYAN << " " << it->second << RESET << std::endl;
+    // }
+    // std::cerr << std::endl;
 
     return headers;
 }
