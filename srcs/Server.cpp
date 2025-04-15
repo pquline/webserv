@@ -66,8 +66,8 @@ void Server::run()
             else
             {
                 
-                char buffer[BUFFER_SIZE] = {0};
-                ssize_t bytesRead = read(eventFd, buffer, BUFFER_SIZE - 1);
+                char buffer[900000] = {0};
+                ssize_t bytesRead = read(eventFd, buffer, 900000 - 1);
                 
                 if (bytesRead <= 0)
                 {

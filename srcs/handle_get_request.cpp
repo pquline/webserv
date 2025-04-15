@@ -2,9 +2,6 @@
 
 void 	Server::handleGetRequest(int eventFd, std::string& request)
 {
-    (void)eventFd;
-    (void)request;
-
     Http_request http_request;
 
     std::string first_line= request.substr(0, request.find("\r\n"));
@@ -29,9 +26,7 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
     // Check headers obligatoire
     // Check html
     std::string file_path = "pages" + uri;
-    std::cerr << RED << http_request.get_uri() << RESET << std::endl;
-    
-    std::ifstream file(file_path.c_str()); // Enlève le slash initial pour le chemin du fichier
+    std::ifstream file(file_path.c_str());
     if (!file.is_open())
     {
         // 404 Not found
@@ -42,7 +37,6 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
 
     std::string html = buf.str(); 
 
-    // Conversion de la taille en string (alternative à std::to_string en C++98)
     std::ostringstream sizeStream;
     sizeStream << html.size();
     std::string sizeStr = sizeStream.str();
@@ -51,16 +45,9 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
                       "Content-Type: text/html\r\n"
                       "Content-Length: " + sizeStr + "\r\n"
                       "\r\n" + html;
-    std::cerr << MAGENTA << response << RESET << std::endl;
+    // std::cerr << CYAN << response << RESET << std::endl;
     send(eventFd, response.c_str(), response.size(), 0);    
 }
-
-void 	Server::handlePostRequest(int eventFd, std::string& request)
-{
-    (void)eventFd;
-    (void)request;
-}
-
 
 void 	Server::handleDeleteRequest(int eventFd, std::string& request)
 {

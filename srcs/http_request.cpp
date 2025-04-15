@@ -2,7 +2,6 @@
 
 Http_request::Http_request()
 {
-
 };
 
 std::string Http_request::get_content_type() const
@@ -72,6 +71,37 @@ void Http_request::set_content_length(size_t length)
 void Http_request::set_headers(const std::map<std::string, std::string> headers)
 {
     _headers = headers;
+    
+    std::map<std::string, std::string>::const_iterator content_type_it = _headers.find("Content-Type");
+    if (content_type_it != _headers.end()) {
+        _ContentType = content_type_it->second;
+    } else {
+        _ContentType.clear();
+    }
+    
+    std::map<std::string, std::string>::const_iterator content_length_it = _headers.find("Content-Length");
+    if (content_length_it != _headers.end()) {
+        const char* str = content_length_it->second.c_str();
+        char* end_ptr;
+        errno = 0;
+        unsigned long len = std::strtoul(str, &end_ptr, 10);
+        
+        if (errno == 0 && *end_ptr == '\0') 
+        {
+            _contentLength = len;
+            _has_body = (len > 0);
+        } 
+        else 
+        {
+            _contentLength = 0;
+            _has_body = false;
+        }
+    } 
+    else 
+    {
+        _contentLength = 0;
+        _has_body = false;
+    }
 }
 
 std::map<std::string, std::string> Http_request::parse_headers(std::string& request) 
@@ -109,8 +139,7 @@ std::map<std::string, std::string> Http_request::parse_headers(std::string& requ
 
         headers[key] = value;
     }
-
-    // Boucle pour test
+    // // Boucle pour test
     // for (std::map<std::string, std::string>::const_iterator it = headers.begin(); 
     //      it != headers.end(); ++it) 
     // {
