@@ -1,57 +1,11 @@
 #include "Server.hpp"
 
-std::string url_decode(const std::string& str) {
-    std::string result;
-    for (size_t i = 0; i < str.length(); ++i) {
-        if (str[i] == '+') {
-            result += ' ';
-        } else if (str[i] == '%' && i + 2 < str.length()) {
-            std::string hex = str.substr(i + 1, 2);
-            char ch = static_cast<char>(strtol(hex.c_str(), NULL, 16));
-            result += ch;
-            i += 2;
-        } else {
-            result += str[i];
-        }
-    }
-    return result;
-}
-
-std::map<std::string, std::string> parse_url_encoded(const std::string& body) {
-    std::map<std::string, std::string> form_data;
-    size_t pos = 0;
-    
-    while (pos < body.length()) {
-        size_t amp_pos = body.find('&', pos);
-        if (amp_pos == std::string::npos) amp_pos = body.length();
-        
-        std::string pair = body.substr(pos, amp_pos - pos);
-        size_t equal_pos = pair.find('=');
-        
-        if (equal_pos != std::string::npos) {
-            std::string key = pair.substr(0, equal_pos);
-            std::string value = pair.substr(equal_pos + 1);
-            
-            // URL decoding basique
-            std::string decoded_key = url_decode(key);
-            std::string decoded_value = url_decode(value);
-            
-            form_data[decoded_key] = decoded_value;
-        }
-        
-        pos = amp_pos + 1;
-    }
-    
-    return form_data;
-}
-
 void Server::handlePostRequest(int eventFd, std::string& request)
 {
     (void)eventFd;
     (void)request;
     Http_request http_request;
 
-    std::cerr << GREEN << request <<  RESET << std::endl;
     size_t header_end = request.find("\r\n\r\n");
     if (header_end == std::string::npos) 
     {
@@ -82,7 +36,8 @@ void Server::handlePostRequest(int eventFd, std::string& request)
     }
     std::string body = request.substr(header_end + 4, content_length);
     std::cerr << RED << http_request.get_content_type() << RESET << std::endl;
-    if(http_request.get_content_type().compare("application/x-www-form-urlencoded") == 0)
+    std::string content_type = http_request.get_content_type();
+    if(content_type.find("application/x-www-form-urlencoded") != std::string::npos)
     {
         
         std::map<std::string, std::string> form_data = parse_url_encoded(body);
@@ -94,5 +49,85 @@ void Server::handlePostRequest(int eventFd, std::string& request)
                               "\r\n"
                               "Donnees recues=" + test;
         send(eventFd, response.c_str(), response.size(), 0);
+    }
+    else if (content_type.find("multipart/form-data") != std::string::npos)
+    {
+    size_t boundary_pos = content_type.find("boundary=");
+    if (boundary_pos == std::string::npos)
+    {
+        // "Bad Request: No boundary in Content-Type";
+        return;
+    }
+    std::string boundary = content_type.substr(boundary_pos + 9);
+    boundary = "--" + boundary;
+
+    std::vector<std::string> parts;
+    size_t start = 0;
+    size_t end = body.find(boundary);
+    
+    while (end != std::string::npos)
+    {
+        std::string part = body.substr(start, end - start);
+        if (!part.empty())
+        {
+            parts.push_back(part);
+        }
+        start = end + boundary.length() + 2;
+        end = body.find(boundary, start);
+    }
+
+    std::map<std::string, std::string> form_data;
+    
+    for (size_t i = 0; i < parts.size(); ++i)
+    {
+        std::string part = parts[i];
+        
+        size_t header_end = part.find("\r\n\r\n");
+        if (header_end == std::string::npos)
+        {
+            continue;
+        }
+        
+        std::string headers = part.substr(0, header_end);
+        std::string content = part.substr(header_end + 4);
+        
+        size_t name_pos = headers.find("name=\"");
+        if (name_pos == std::string::npos)
+        {
+            continue; 
+        }
+        name_pos += 6;
+        size_t name_end = headers.find("\"", name_pos);
+        std::string name = headers.substr(name_pos, name_end - name_pos);
+        
+        if (!content.empty() && content[content.length() - 1] == '\n')
+        {
+            content.erase(content.length() - 1);
+        }
+        if (!content.empty() && content[content.length() - 1] == '\r')
+        {
+            content.erase(content.length() - 1);
+        }
+        
+        form_data[name] = content;
+    }
+
+    std::string nom = form_data["nom"];
+    std::string prenom = form_data["prenom"];
+    std::string age = form_data["age"];
+    std::string school = form_data["school"];
+    std::string birthday = form_data["birthday"];
+
+    std::string response = "HTTP/1.1 200 OK\r\n"
+                          "Content-Type: text/plain\r\n"
+                          "\r\n"
+                          "Donnees recues:\n"
+                          "- Nom: " + nom + "\n"
+                          "- Prenom: " + prenom + "\n"
+                          "- Age: " + age + "\n"
+                          "- School: " + school + "\n"
+                          "- Birthday: " + birthday;
+    
+    send(eventFd, response.c_str(), response.size(), 0);
     }
 }

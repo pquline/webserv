@@ -1,26 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Me</title>
+    <title>Formulaire d'Informations</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
         }
         h1 {
-            color: #333;
             text-align: center;
-        }
-        .form-container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            color: #333;
         }
         .form-group {
             margin-bottom: 15px;
@@ -53,77 +46,68 @@
         button:hover {
             background-color: #45a049;
         }
-        .required:after {
-            content: " *";
-            color: red;
-        }
-        .back-button {
-            padding: 8px 16px;
-            background-color: #f44336;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
+        .preview {
+            margin-top: 10px;
+            max-width: 200px;
+            max-height: 200px;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <a href="index.html" class="back-button">Back</a>
-    <div class="form-container">
-        <h1>About Me</h1>
-        <form action="/editmyinfo.html" method="post" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="lastname" class="required">Last Name</label>
-                <input type="text" id="lastname" name="lastname" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="firstname" class="required">First Name</label>
-                <input type="text" id="firstname" name="firstname" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="age" class="required">Age</label>
-                <input type="number" id="age" name="age" min="1" max="120" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="school">School/University</label>
-                <input type="text" id="school" name="school">
-            </div>
-            
-            <div class="form-group">
-                <label for="color" class="required">Favorite Color</label>
-                <select id="color" name="color" required>
-                    <option value="">-- Choose a color --</option>
-                    <option value="red">Red</option>
-                    <option value="blue">Blue</option>
-                    <option value="green">Green</option>
-                    <option value="yellow">Yellow</option>
-                    <option value="orange">Orange</option>
-                    <option value="purple">Purple</option>
-                    <option value="pink">Pink</option>
-                    <option value="black">Black</option>
-                    <option value="white">White</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="birthday" class="required">Birthday</label>
-                <input type="date" id="birthday" name="birthday" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="photo">Profile Picture</label>
-                <input type="file" id="photo" name="photo" accept="image/*">
-            </div>
-            
-            <button type="submit">Submit</button>
-        </form>
-    </div>
+    <h1>Vos Informations</h1>
+    <form id="infoForm" action="/" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="nom">Nom:</label>
+            <input type="text" id="nom" name="nom" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="prenom">Prénom:</label>
+            <input type="text" id="prenom" name="prenom" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="age">Âge:</label>
+            <input type="number" id="age" name="age" min="1" max="120" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="school">École:</label>
+            <input type="text" id="school" name="school" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="birthday">Date de naissance:</label>
+            <input type="date" id="birthday" name="birthday" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="photo">Photo:</label>
+            <input type="file" id="photo" name="photo" accept="image/*">
+            <img id="preview" class="preview" alt="Aperçu de l'image">
+        </div>
+        
+        <button type="submit">Envoyer</button>
+    </form>
 
     <script>
-        document.getElementById('birthday').max = new Date().toISOString().split('T')[0];
+        // Aperçu de l'image avant upload
+        document.getElementById('photo').addEventListener('change', function(e) {
+            const preview = document.getElementById('preview');
+            const file = e.target.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                
+                reader.readAsDataURL(file);
+            }
+        });
     </script>
 </body>
 </html>

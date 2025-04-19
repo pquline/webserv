@@ -48,3 +48,6 @@ class Server
 		void	handleErrorResponse(int eventFd, const std::string& error);
 };
 #endif 
+
+std::string url_decode(const std::string& str);
+std::map<std::string, std::string> parse_url_encoded(const std::string& body);

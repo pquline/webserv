@@ -7,7 +7,7 @@ NAME			:=	webserv
 # ---------------------------------- PROGRAM --------------------------------- #
 
 SRC				+=	main.cpp Server.cpp parsing_request.cpp handle_get_request.cpp 
-SRC				+=	utils.cpp http_request.cpp handle_post_request.cpp
+SRC				+=	utils.cpp http_request.cpp handle_post_request.cpp post_request_utils.cpp
 
 # --------------------------------- COMMANDS --------------------------------- #
 
