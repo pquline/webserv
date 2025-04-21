@@ -33,37 +33,37 @@ size_t Http_request::get_content_length() const
     return(_contentLength);
 };
 
-std::map<std::string, std::string>Http_request::get_headers()const 
+std::map<std::string, std::string>Http_request::get_headers()const
 {
     return(_headers);
 }
 
-void Http_request::set_content_type(const std::string& type) 
+void Http_request::set_content_type(const std::string& type)
 {
     _ContentType = type;
 }
 
-void Http_request::set_method(const std::string& m) 
+void Http_request::set_method(const std::string& m)
 {
     _method = m;
 }
 
-void Http_request::set_uri(const std::string& u) 
+void Http_request::set_uri(const std::string& u)
 {
     _uri = u;
 }
 
-void Http_request::set_version(const std::string& version) 
+void Http_request::set_version(const std::string& version)
 {
     _http_version = version;
 }
 
-void Http_request::set_has_body(bool has) 
+void Http_request::set_has_body(bool has)
 {
     _has_body = has;
 }
 
-void Http_request::set_content_length(size_t length) 
+void Http_request::set_content_length(size_t length)
 {
     _contentLength = length;
 }
@@ -71,53 +71,53 @@ void Http_request::set_content_length(size_t length)
 void Http_request::set_headers(const std::map<std::string, std::string> headers)
 {
     _headers = headers;
-    
+
     std::map<std::string, std::string>::const_iterator content_type_it = _headers.find("Content-Type");
     if (content_type_it != _headers.end()) {
         _ContentType = content_type_it->second;
     } else {
         _ContentType.clear();
     }
-    
+
     std::map<std::string, std::string>::const_iterator content_length_it = _headers.find("Content-Length");
     if (content_length_it != _headers.end()) {
         const char* str = content_length_it->second.c_str();
         char* end_ptr;
         errno = 0;
         unsigned long len = std::strtoul(str, &end_ptr, 10);
-        
-        if (errno == 0 && *end_ptr == '\0') 
+
+        if (errno == 0 && *end_ptr == '\0')
         {
             _contentLength = len;
             _has_body = (len > 0);
-        } 
-        else 
+        }
+        else
         {
             _contentLength = 0;
             _has_body = false;
         }
-    } 
-    else 
+    }
+    else
     {
         _contentLength = 0;
         _has_body = false;
     }
 }
 
-std::map<std::string, std::string> Http_request::parse_headers(std::string& request) 
+std::map<std::string, std::string> Http_request::parse_headers(std::string& request)
 {
     std::map<std::string, std::string> headers;
-    
+
     size_t start = request.find("\r\n");
-    if (start == std::string::npos) 
+    if (start == std::string::npos)
         return headers;
     start += 2;
     size_t end = request.find("\r\n\r\n", start);
-    if (end == std::string::npos) 
+    if (end == std::string::npos)
         end = request.length();
 
     size_t line_start = start;
-    while (line_start < end) 
+    while (line_start < end)
     {
         size_t line_end = request.find("\r\n", line_start);
         if (line_end == std::string::npos || line_end > end)
@@ -127,10 +127,10 @@ std::map<std::string, std::string> Http_request::parse_headers(std::string& requ
         line_start = line_end + 2;
 
         size_t colon = line.find(": ");
-        if (colon == std::string::npos) 
+        if (colon == std::string::npos)
         {
             colon = line.find(":");
-            if (colon == std::string::npos) 
+            if (colon == std::string::npos)
                 continue;
         }
 
@@ -140,8 +140,8 @@ std::map<std::string, std::string> Http_request::parse_headers(std::string& requ
         headers[key] = value;
     }
     // // Boucle pour test
-    // for (std::map<std::string, std::string>::const_iterator it = headers.begin(); 
-    //      it != headers.end(); ++it) 
+    // for (std::map<std::string, std::string>::const_iterator it = headers.begin();
+    //      it != headers.end(); ++it)
     // {
     //     std::cout << YELLOW << "[" << it->first << "]" << CYAN << " " << it->second << RESET << std::endl;
     // }

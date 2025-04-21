@@ -41,13 +41,13 @@ class Server
 
 		void	startParsing(int eventFd, ssize_t bytesRead,char *buffer);
 
-		void 	handlePostRequest(int eventFd, std::string& request);
-		void 	handleGetRequest(int eventFd, std::string& request);
-		void 	handleDeleteRequest(int eventFd, std::string& request);
+		void	handlePostRequest(int eventFd, std::string& request);
+		void	handleGetRequest(int eventFd, std::string& request);
+		void	handleDeleteRequest(int eventFd, std::string& request);
 
-		void	handleErrorResponse(int eventFd, const std::string& error);
+		void	sendError(int fd, int code, const std::string& message);
 };
-#endif 
+#endif
 
 std::string url_decode(const std::string& str);
 std::map<std::string, std::string> parse_url_encoded(const std::string& body);

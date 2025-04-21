@@ -6,7 +6,7 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
 
     std::string first_line= request.substr(0, request.find("\r\n"));
     std::vector<std::string> request_splitted = ft_split(first_line, ' ');
-    if (request_splitted.size() != 3) 
+    if (request_splitted.size() != 3)
     {
         // Bad request
         return;
@@ -29,13 +29,14 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
     std::ifstream file(file_path.c_str());
     if (!file.is_open())
     {
-        // 404 Not found
+        sendError(eventFd, 404, "Page Not Found");
+		return ;
     }
     std::stringstream buf;
-    buf << file.rdbuf(); 
+    buf << file.rdbuf();
     file.close();
 
-    std::string html = buf.str(); 
+    std::string html = buf.str();
 
     std::ostringstream sizeStream;
     sizeStream << html.size();
@@ -46,7 +47,7 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
                       "Content-Length: " + sizeStr + "\r\n"
                       "\r\n" + html;
     // std::cerr << CYAN << response << RESET << std::endl;
-    send(eventFd, response.c_str(), response.size(), 0);    
+    send(eventFd, response.c_str(), response.size(), 0);
 }
 
 void 	Server::handleDeleteRequest(int eventFd, std::string& request)
