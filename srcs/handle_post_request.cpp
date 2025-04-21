@@ -106,7 +106,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
                 size_t filename_end = headers.find("\"", filename_pos);
                 std::string filename = headers.substr(filename_pos, filename_end - filename_pos);
 
-                std::string upload_path = "./uploads/" + filename;
+                std::string upload_path = "./pages/" + filename;
                 std::ofstream ofs(upload_path.c_str(), std::ios::binary);
                 if (ofs)
                 {

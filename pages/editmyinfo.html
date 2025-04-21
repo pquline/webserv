@@ -34,7 +34,24 @@
             border-radius: 4px;
             box-sizing: border-box;
         }
-        button {
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .button-back {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button-back:hover {
+            background-color: #d32f2f;
+        }
+        .button-submit {
             background-color: #4CAF50;
             color: white;
             padding: 10px 15px;
@@ -43,7 +60,7 @@
             cursor: pointer;
             font-size: 16px;
         }
-        button:hover {
+        .button-submit:hover {
             background-color: #45a049;
         }
         .preview {
@@ -58,27 +75,27 @@
     <h1>Vos Informations</h1>
     <form id="infoForm" action="/" method="POST" enctype="multipart/form-data">
         <div class="form-group">
-            <label for="nom">Nom:</label>
-            <input type="text" id="nom" name="nom" required>
+            <label for="nom">Name:</label>
+            <input type="text" id="name" name="name" required>
         </div>
         
         <div class="form-group">
-            <label for="prenom">Prénom:</label>
-            <input type="text" id="prenom" name="prenom" required>
+            <label for="prenom">First Name:</label>
+            <input type="text" id="firstname" name="firstname" required>
         </div>
         
         <div class="form-group">
-            <label for="age">Âge:</label>
+            <label for="age">Age:</label>
             <input type="number" id="age" name="age" min="1" max="120" required>
         </div>
         
         <div class="form-group">
-            <label for="school">École:</label>
+            <label for="school">School:</label>
             <input type="text" id="school" name="school" required>
         </div>
         
         <div class="form-group">
-            <label for="birthday">Date de naissance:</label>
+            <label for="birthday">Birthday:</label>
             <input type="date" id="birthday" name="birthday" required>
         </div>
         
@@ -88,11 +105,13 @@
             <img id="preview" class="preview" alt="Aperçu de l'image">
         </div>
         
-        <button type="submit">Envoyer</button>
+        <div class="button-container">
+            <button type="button" class="button-back" onclick="window.history.back()">Back</button>
+            <button type="submit" class="button-submit">Send</button>
+        </div>
     </form>
 
     <script>
-        // Aperçu de l'image avant upload
         document.getElementById('photo').addEventListener('change', function(e) {
             const preview = document.getElementById('preview');
             const file = e.target.files[0];
