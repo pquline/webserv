@@ -19,7 +19,7 @@ Server::Server(int autoindex, ssize_t max_body_size, std::string root, \
 	if (_hosts.empty())
 		_hosts.push_back("localhost");
 	if (_ports.empty())
-		_ports.push_back(80);
+		_ports.push_back(8080);
 	memset(&m_address, 0, sizeof(m_address));
 }
 
@@ -42,14 +42,14 @@ void Server::init()
 		handleError("Socket creation failed");
 	m_address.sin_family = AF_INET;
 	m_address.sin_addr.s_addr = htonl(INADDR_ANY);
-	m_address.sin_port = htons(m_port);
+	m_address.sin_port = htons(static_cast<uint16_t>(*_ports.begin()));
 
 	if (bind(m_serverFd, (struct sockaddr *)(&m_address), sizeof(m_address)) < 0)
 		handleError("Binding failed");
 
 	if (listen(m_serverFd, 10) < 0)
 		handleError("Listening failed");
-	std::cout << GREEN << "Server is listening on port " << m_port << "..." << RESET << std::endl;
+	std::cout << GREEN << "Server is listening on port " << *_ports.begin() << "..." << RESET << std::endl;
 }
 
 void Server::run()
