@@ -6,7 +6,7 @@ NAME			:=	webserv
 
 # ---------------------------------- PROGRAM --------------------------------- #
 
-SRC				+=	main.cpp Server.cpp parsing_request.cpp handle_get_request.cpp 
+SRC				+=	main.cpp Server.cpp Location.cpp parsing/conf.cpp parsing_request.cpp handle_get_request.cpp 
 SRC				+=	utils.cpp http_request.cpp handle_post_request.cpp post_request_utils.cpp
 
 # --------------------------------- COMMANDS --------------------------------- #
@@ -93,7 +93,7 @@ HELP			:=	@$(ECHO) "$$HELP_MSG"
 # ---------------------------------------------------------------------------- #
 
 $(OBJS_DIR)%.o:		$(SRCS_DIR)%.cpp
-					@$(MKDIR) $(dir $@) $(DEPS_DIR)
+					@$(MKDIR) $(dir $@) $(dir $(DEPS_DIR)$*)
 					@$(CPP) $(CPPFLAGS) $(DEPFLAGS) -I $(INCLUDES) -MF $(DEPS_DIR)$*.d -c $< -o $@
 
 all:				$(NAME)

@@ -1,13 +1,37 @@
 #include "Server.hpp"
 
-Server::Server(uint16_t port) : m_port(port), m_serverFd(-1)
+/*Server::Server(uint16_t port) : m_port(port), m_serverFd(-1)
 {
+}*/
+
+Server::Server(int autoindex, ssize_t max_body_size, std::string root, \
+	std::vector<std::string> hosts, std::vector<unsigned int> ports, \
+	std::map<unsigned int, std::string> error_pages, \
+	std::map<std::string, Location *> locations): \
+	_autoindex(autoindex), _max_body_size(max_body_size), _root(root), \
+	_hosts(hosts), _ports(ports), _error_pages(error_pages), \
+	_locations(locations)
+{
+	if (_max_body_size == UNSET)
+		throw std::invalid_argument(PARSING_UNEXPECTED);
+	if (_root.empty())
+		throw std::invalid_argument(PARSING_UNEXPECTED);
+	if (_hosts.empty())
+		_hosts.push_back("localhost");
+	if (_ports.empty())
+		_ports.push_back(80);
 	memset(&m_address, 0, sizeof(m_address));
 }
 
 Server::~Server()
 {
 	close(m_serverFd);
+	if (!_locations.empty())
+	{
+		for (std::map<std::string, Location *>::iterator it = _locations.begin(); \
+				it != _locations.end(); it++)
+			delete(it->second);
+	}
 	std::cout << "Server shut down." << std::endl;
 }
 
@@ -188,6 +212,12 @@ void Server::setNonBlocking(int fd)
 	if (flags == -1)
 		handleError("fcntl F_GETFL");
 
+	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) handleError("fcntl F_SETFL");
 	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
 		handleError("fcntl F_SETFL");
+}
+
+int	Server::get_autoindex(void) const
+{
+	return (_autoindex);
 }
