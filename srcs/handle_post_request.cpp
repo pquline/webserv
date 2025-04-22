@@ -16,6 +16,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
     std::vector<std::string> request_splitted = ft_split(first_line, ' ');
     if (request_splitted.size() != 3)
         return sendError(eventFd, 400, "Bad Request");
+
     if (request_splitted[2].compare(GOOD_HTTP_VERSION))
         return sendError(eventFd, 505, "HTTP Version Not Supported");
     http_request.set_version(request_splitted[2]);
@@ -27,7 +28,11 @@ void Server::handlePostRequest(int eventFd, std::string &request)
     if (content_length == 0)
         return sendError(eventFd, 411, "Length Required");
 
-    if (content_length > static_cast<size_t>(_max_body_size))
+    // Fetch the maximum allowed file size from the configuration
+    size_t max_file_size = 1000000;  // Set this value from the .conf file or hardcode for testing.
+
+    // Check if the total content length exceeds the limit BEFORE extracting the body
+    if (content_length > max_file_size)
         return sendError(eventFd, 413, "Entity Too Large");
 
     std::string body = request.substr(header_end + 4, content_length);
@@ -67,9 +72,6 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         std::map<std::string, std::string> form_data;
         std::vector<std::string> saved_files;
 
-        // Create the upload directory (POSIX, C++98 compatible)
-        mkdir("./uploads", 0755);
-
         for (size_t i = 0; i < parts.size(); ++i)
         {
             std::string part = parts[i];
@@ -96,17 +98,14 @@ void Server::handlePostRequest(int eventFd, std::string &request)
             size_t filename_pos = headers.find("filename=\"");
             if (filename_pos != std::string::npos)
             {
-                filename_pos += 10;
-                size_t filename_end = headers.find("\"", filename_pos);
-                std::string filename = headers.substr(filename_pos, filename_end - filename_pos);
-
-                std::string upload_path = "./pages/" + filename;
+                // Ignorer le nom original du fichier et utiliser pp.jpg à la place
+                std::string upload_path = "pages/pp.jpg";
                 std::ofstream ofs(upload_path.c_str(), std::ios::binary);
                 if (ofs)
                 {
                     ofs.write(content.c_str(), static_cast<long>(content.size()));
                     ofs.close();
-                    saved_files.push_back(filename);
+                    saved_files.push_back("pp.jpg");
                 }
             }
             else
