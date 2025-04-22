@@ -2,6 +2,8 @@
 #include <fstream>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>  // For access()
+#include <cstdio>    // For remove()
 
 void Server::handlePostRequest(int eventFd, std::string &request)
 {
@@ -28,11 +30,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
     if (content_length == 0)
         return sendError(eventFd, 411, "Length Required");
 
-    // Fetch the maximum allowed file size from the configuration
-    size_t max_file_size = 1000000;  // Set this value from the .conf file or hardcode for testing.
-
-    // Check if the total content length exceeds the limit BEFORE extracting the body
-    if (content_length > max_file_size)
+    if (content_length > (size_t)_max_body_size)
         return sendError(eventFd, 413, "Entity Too Large");
 
     std::string body = request.substr(header_end + 4, content_length);
@@ -46,7 +44,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         std::string response = "HTTP/1.1 200 OK\r\n"
                                "Content-Type:  text/plain\r\n"
                                "\r\n"
-                               "Donnees recues=" + test;
+                               "Received data:" + test;
         send(eventFd, response.c_str(), response.size(), 0);
     }
     else if (content_type.find("multipart/form-data") != std::string::npos)
@@ -98,14 +96,25 @@ void Server::handlePostRequest(int eventFd, std::string &request)
             size_t filename_pos = headers.find("filename=\"");
             if (filename_pos != std::string::npos)
             {
-                // Ignorer le nom original du fichier et utiliser pp.jpg à la place
-                std::string upload_path = "pages/pp.jpg";
+                std::string upload_path = "www/pp.jpg";
+
+                // Overwrite if file already exists
+                if (access(upload_path.c_str(), F_OK) == 0)
+                {
+                    if (remove(upload_path.c_str()) != 0)
+                        return sendError(eventFd, 500, "Internal Server Error: Failed to remove existing pp.jpg");
+                }
+
                 std::ofstream ofs(upload_path.c_str(), std::ios::binary);
                 if (ofs)
                 {
                     ofs.write(content.c_str(), static_cast<long>(content.size()));
                     ofs.close();
                     saved_files.push_back("pp.jpg");
+                }
+                else
+                {
+                    return sendError(eventFd, 500, "Internal Server Error: Failed to save pp.jpg");
                 }
             }
             else
@@ -117,14 +126,14 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         std::string response = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: text/plain\r\n"
                                "\r\n"
-                               "Donnees recues:\n";
+                               "Received data:\n";
 
         for (std::map<std::string, std::string>::iterator it = form_data.begin(); it != form_data.end(); ++it)
             response += "- " + it->first + ": " + it->second + "\n";
 
         if (!saved_files.empty())
         {
-            response += "Fichiers sauvegardes:\n";
+            response += "Saved files:\n";
             for (size_t i = 0; i < saved_files.size(); ++i)
                 response += "- " + saved_files[i] + "\n";
         }

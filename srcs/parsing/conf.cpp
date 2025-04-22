@@ -258,7 +258,6 @@ static void	parse_error_page(const std::string& directive, \
 
 static void	parse_indexes(const std::string& directive, std::vector<std::string> &indexes)
 {
-	(void)indexes;
 	size_t	index = std::string("index").size();
 	size_t	begin;
 

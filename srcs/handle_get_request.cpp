@@ -19,7 +19,7 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
     http_request.set_headers(http_request.parse_headers(request));
     // Check headers obligatoire
     // Check html
-    std::string file_path = "pages" + uri;
+    std::string file_path = "www" + uri;
     std::ifstream file(file_path.c_str());
     if (!file.is_open())
         return sendError(eventFd, 404, "Page Not Found");
