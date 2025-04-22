@@ -16,10 +16,8 @@ void Server::handlePostRequest(int eventFd, std::string &request)
     std::vector<std::string> request_splitted = ft_split(first_line, ' ');
     if (request_splitted.size() != 3)
         return sendError(eventFd, 400, "Bad Request");
-
     if (request_splitted[2].compare(GOOD_HTTP_VERSION))
         return sendError(eventFd, 505, "HTTP Version Not Supported");
-
     http_request.set_version(request_splitted[2]);
     std::string uri = request_splitted[1];
     http_request.set_uri(uri);

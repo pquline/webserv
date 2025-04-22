@@ -72,16 +72,16 @@
     </style>
 </head>
 <body>
-    <h1>Vos Informations</h1>
+    <h1>Edit your informations</h1>
     <form id="infoForm" action="/" method="POST" enctype="multipart/form-data">
         <div class="form-group">
-            <label for="nom">Name:</label>
-            <input type="text" id="name" name="name" required>
+            <label for="nom">First Name:</label>
+            <input type="text" id="firstname" name="firstname" required>
         </div>
         
         <div class="form-group">
-            <label for="prenom">First Name:</label>
-            <input type="text" id="firstname" name="firstname" required>
+            <label for="prenom">Last Name:</label>
+            <input type="text" id="lastname" name="lastname" required>
         </div>
         
         <div class="form-group">
@@ -95,14 +95,9 @@
         </div>
         
         <div class="form-group">
-            <label for="birthday">Birthday:</label>
-            <input type="date" id="birthday" name="birthday" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="photo">Photo:</label>
+            <label for="photo">Profile Picture:</label>
             <input type="file" id="photo" name="photo" accept="image/*">
-            <img id="preview" class="preview" alt="Aperçu de l'image">
+            <img id="preview" class="preview" alt="Image preview">
         </div>
         
         <div class="button-container">

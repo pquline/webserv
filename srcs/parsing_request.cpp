@@ -24,7 +24,5 @@ void Server::startParsing(int eventFd, ssize_t bytesRead, char *buffer)
         Server::handleDeleteRequest(eventFd, request);
     }
     else
-    {
-        // throw 400 bad_request
-    }
+        sendError(eventFd, 400, "Bad Request");
 };

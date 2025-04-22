@@ -7,15 +7,9 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
     std::string first_line= request.substr(0, request.find("\r\n"));
     std::vector<std::string> request_splitted = ft_split(first_line, ' ');
     if (request_splitted.size() != 3)
-    {
-        // Bad request
-        return;
-    }
+    return sendError(eventFd, 400, "Bad Request");
     if(request_splitted[2].compare(GOOD_HTTP_VERSION))
-    {
-        // Bad HTTP version
-        return;
-    }
+        return sendError(eventFd, 505, "HTTP Version Not Supported");
     http_request.set_version(request_splitted[2]);
     std::string uri = request_splitted[1];
     if (uri == "/") {
@@ -28,10 +22,7 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
     std::string file_path = "pages" + uri;
     std::ifstream file(file_path.c_str());
     if (!file.is_open())
-    {
-        sendError(eventFd, 404, "Page Not Found");
-		return ;
-    }
+        return sendError(eventFd, 404, "Page Not Found");
     std::stringstream buf;
     buf << file.rdbuf();
     file.close();
