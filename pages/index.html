@@ -77,20 +77,20 @@
 <body>
     <div class="container">
         <h1>User Profile</h1>
-        
+
         <!-- Photo de profil -->
         <div id="profile-photo">
             <script>
                 var photoPath = "../pp.jpg";
                 var defaultPhoto = "/default.jpg";
                 var profileImg = new Image();
-                
+
                 profileImg.onload = function() {
                     document.getElementById('profile-photo').innerHTML = `
                         <img src="${photoPath}" class="profile-picture" alt="Profile Photo">
                     `;
                 };
-                
+
                 profileImg.onerror = function() {
                     // Si pp.jpg n'existe pas, on essaie default.jpg
                     var defaultImg = new Image();
@@ -107,14 +107,14 @@
                     };
                     defaultImg.src = defaultPhoto;
                 };
-                
+
                 profileImg.src = photoPath;
             </script>
         </div>
-        
+
         <a href="whoami.html" class="button view">Tell me who I am</a>
-        <a href="editmyinfo.html" class="button">Edit my informations</a>
-        <a href="testbutton.html" class="button test">Bouton Test</a>
+        <a href="editmyinfo.html" class="button">Edit my information</a>
+        <a href="testbutton.html" class="button test">Test button</a>
     </div>
 </body>
 </html>

@@ -50,6 +50,7 @@ void Server::init()
 	if (listen(m_serverFd, 10) < 0)
 		handleError("Listening failed");
 	std::cout << GREEN << "Server is listening on port " << *_ports.begin() << "..." << RESET << std::endl;
+	std::cout << GREEN << "http://localhost:" << *_ports.begin() << "..." << RESET << std::endl;
 }
 
 void Server::run()
