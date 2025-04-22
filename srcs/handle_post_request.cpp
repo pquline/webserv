@@ -27,11 +27,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
     if (content_length == 0)
         return sendError(eventFd, 411, "Length Required");
 
-    // Fetch the maximum allowed file size from the configuration
-    size_t max_file_size = 1000000;  // Set this value from the .conf file or hardcode for testing.
-
-    // Check if the total content length exceeds the limit BEFORE extracting the body
-    if (content_length > max_file_size)
+    if (content_length > _max_body_size)
         return sendError(eventFd, 413, "Entity Too Large");
 
     std::string body = request.substr(header_end + 4, content_length);
