@@ -27,7 +27,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
     if (content_length == 0)
         return sendError(eventFd, 411, "Length Required");
 
-    if (content_length > _max_body_size)
+    if (content_length > static_cast<size_t>(_max_body_size))
         return sendError(eventFd, 413, "Entity Too Large");
 
     std::string body = request.substr(header_end + 4, content_length);
