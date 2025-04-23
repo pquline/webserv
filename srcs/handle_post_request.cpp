@@ -1,10 +1,5 @@
 #include "Server.hpp"
-#include <fstream>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>  // For access()
-#include <cstdio>    // For remove()
-
+/*
 void Server::handlePostRequest(int eventFd, std::string &request)
 {
     (void)eventFd;
@@ -139,4 +134,70 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         }
         send(eventFd, response.c_str(), response.size(), 0);
     }
+}*/
+
+void Server::handlePostRequest(int clientFd, const std::string &request)
+{
+	std::string requestTarget = parseRequestTarget(request); // e.g. "/cgi-bin/updateProfile.py"
+	//std::string scriptPath = "." + requestTarget; // Assuming scripts are in ./cgi-bin/
+
+	int pipefd[2];
+	if (pipe(pipefd) == -1)
+		return sendError(clientFd, 500, "Internal Server Error (pipe)");
+
+	pid_t pid = fork();
+	if (pid < 0)
+		return sendError(clientFd, 500, "Internal Server Error (fork)");
+
+	if (pid == 0)
+	{
+		close(pipefd[0]);
+		dup2(pipefd[1], STDOUT_FILENO);
+		close(pipefd[1]);
+
+		//char *argv[] = {(char *)"/usr/bin/python3", (char *)scriptPath.c_str(), NULL};
+		char *argv[] = {(char *)"/usr/bin/python3", (char *)"./www/cgi-bin/updateProfile.py", NULL};
+
+		std::string contentLength = getHeader(request, "Content-Length");
+		std::string contentType = getHeader(request, "Content-Type");
+
+		std::string method = "POST";
+		char *envp[] = {
+			(char *)("REQUEST_METHOD=" + method).c_str(),
+			(char *)("CONTENT_LENGTH=" + contentLength).c_str(),
+			(char *)("CONTENT_TYPE=" + contentType).c_str(),
+			(char *)("SCRIPT_NAME=" + requestTarget).c_str(),
+			(char *)"GATEWAY_INTERFACE=CGI/1.1",
+			(char *)"SERVER_PROTOCOL=HTTP/1.1",
+			NULL
+		};
+
+		execve("/usr/bin/python3", argv, envp);
+		// error handle
+	}
+	else
+	{
+		close(pipefd[1]);
+		char buffer[8192] = {0};
+		ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
+		close(pipefd[0]);
+
+		if (n > 0)
+		{
+			std::ostringstream stream;
+			stream << strlen(buffer);
+			std::string response =
+				"HTTP/1.1 200 OK\r\n"
+				"Content-Type: text/html\r\n"
+				"Content-Length: " + stream.str() + "\r\n"
+				"\r\n" + std::string(buffer);
+			send(clientFd, response.c_str(), response.length(), 0);
+		}
+		else
+		{
+			sendError(clientFd, 500, "CGI Output Error");
+		}
+
+		//waitpid(pid, NULL, 0); // Wait for CGI script to finish
+	}
 }

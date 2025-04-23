@@ -5,7 +5,6 @@ void Server::startParsing(int eventFd, ssize_t bytesRead, char *buffer)
     (void)eventFd;
     (void)bytesRead;
     std::string request(buffer, static_cast<size_t>(bytesRead));
-    std::cerr << MAGENTA << "Received request:\n" << buffer << RESET << std::endl;
 
     std::string first_line = request.substr(0, request.find("\r\n"));
     if(first_line.find("GET") != std::string::npos)
@@ -25,4 +24,5 @@ void Server::startParsing(int eventFd, ssize_t bytesRead, char *buffer)
     }
     else
         sendError(eventFd, 400, "Bad Request");
+    std::cerr << MAGENTA << "Received request:\n" << buffer << RESET << std::endl;
 };

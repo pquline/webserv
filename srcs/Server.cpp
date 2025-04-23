@@ -1,9 +1,5 @@
 #include "Server.hpp"
 
-/*Server::Server(uint16_t port) : m_port(port), m_serverFd(-1)
-{
-}*/
-
 Server::Server(int autoindex, ssize_t max_body_size, std::string root, \
 	std::vector<std::string> hosts, std::vector<unsigned int> ports, \
 	std::map<unsigned int, std::string> error_pages, \
@@ -221,4 +217,19 @@ void Server::setNonBlocking(int fd)
 int	Server::get_autoindex(void) const
 {
 	return (_autoindex);
+}
+
+std::string	Server::parseRequestTarget(const std::string& request) {
+    std::istringstream stream(request);
+    std::string method, path;
+    stream >> method >> path;
+    return path;
+}
+
+std::string	Server::getHeader(const std::string& request, const std::string& key) {
+    size_t pos = request.find(key + ": ");
+    if (pos == std::string::npos) return "";
+    size_t start = pos + key.length() + 2;
+    size_t end = request.find("\r\n", start);
+    return request.substr(start, end - start);
 }
