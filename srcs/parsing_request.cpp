@@ -3,7 +3,7 @@
 void Server::startParsing(int eventFd, ssize_t bytesRead, char *buffer)
 {
     (void)eventFd;
-    (void)bytesRead;
+    //(void)bytesRead;
     std::string request(buffer, static_cast<size_t>(bytesRead));
 
     std::string first_line = request.substr(0, request.find("\r\n"));

@@ -33,12 +33,3 @@ int	main(int argc, char **argv)
 		return (EXIT_FAILURE);
 	}
 }
-/*
-int main(int argc, char** argv)
-{
-	int port = std::atoi(argv[1]);
-	Server server((uint16_t)port);
-	server.init();
-	server.run();
-	return 0;
-}*/

@@ -2,12 +2,13 @@
 
 import os
 import sys
+import cgi
 
 form = cgi.FieldStorage()
 
-firstname = form.getvalue("firstname", "Unknown")
-lastname = form.getvalue("lastname", "Unknown")
-school = form.getvalue("school", "Unknown")
+firstname = form.getvalue("firstname")
+lastname = form.getvalue("lastname")
+school = form.getvalue("school")
 photo_item = form["photo"] if "photo" in form else None
 photo_path = None
 

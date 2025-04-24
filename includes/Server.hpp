@@ -45,7 +45,7 @@ class Server
 		void	handleError(const std::string& msg);
 		void	setNonBlocking(int fd);
 		void	startParsing(int eventFd, ssize_t bytesRead,char *buffer);
-		void	handlePostRequest(int clientFd, const std::string& request);
+		void	handlePostRequest(int eventFd, std::string& request);
 		void	handleGetRequest(int eventFd, std::string& request);
 		void	handleDeleteRequest(int eventFd, std::string& request);
 		void	sendError(int fd, int code, const std::string& message);

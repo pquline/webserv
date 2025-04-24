@@ -73,11 +73,10 @@ void Http_request::set_headers(const std::map<std::string, std::string> headers)
     _headers = headers;
 
     std::map<std::string, std::string>::const_iterator content_type_it = _headers.find("Content-Type");
-    if (content_type_it != _headers.end()) {
+    if (content_type_it != _headers.end())
         _ContentType = content_type_it->second;
-    } else {
+    else
         _ContentType.clear();
-    }
 
     std::map<std::string, std::string>::const_iterator content_length_it = _headers.find("Content-Length");
     if (content_length_it != _headers.end()) {

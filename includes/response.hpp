@@ -5,11 +5,11 @@
 class Response
 {
     public:
-        Response(std::string http_ver, int code, std::string phrase, std::string body);
+        Response(const std::string& http_ver, int code, const std::string& phrase, const std::string& body);
     
     private:
-        std::string	_http_version;
-        int			_status_code;
-        std::string	_reason_phrase;
-        std::string	body;
+        std::string	m_http_version;
+        int			m_status_code;
+        std::string	m_reason_phrase;
+        std::string	m_body;
 };

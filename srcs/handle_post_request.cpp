@@ -134,20 +134,21 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         }
         send(eventFd, response.c_str(), response.size(), 0);
     }
-}*/
+}
+*/
 
-void Server::handlePostRequest(int clientFd, const std::string &request)
+void Server::handlePostRequest(int eventFd, std::string &request)
 {
 	std::string requestTarget = parseRequestTarget(request); // e.g. "/cgi-bin/updateProfile.py"
 	//std::string scriptPath = "." + requestTarget; // Assuming scripts are in ./cgi-bin/
 
 	int pipefd[2];
 	if (pipe(pipefd) == -1)
-		return sendError(clientFd, 500, "Internal Server Error (pipe)");
+		return sendError(eventFd, 500, "Internal Server Error (pipe)");
 
 	pid_t pid = fork();
 	if (pid < 0)
-		return sendError(clientFd, 500, "Internal Server Error (fork)");
+		return sendError(eventFd, 500, "Internal Server Error (fork)");
 
 	if (pid == 0)
 	{
@@ -191,11 +192,11 @@ void Server::handlePostRequest(int clientFd, const std::string &request)
 				"Content-Type: text/html\r\n"
 				"Content-Length: " + stream.str() + "\r\n"
 				"\r\n" + std::string(buffer);
-			send(clientFd, response.c_str(), response.length(), 0);
+			send(eventFd, response.c_str(), response.length(), 0);
 		}
 		else
 		{
-			sendError(clientFd, 500, "CGI Output Error");
+			sendError(eventFd, 500, "CGI Output Error");
 		}
 
 		//waitpid(pid, NULL, 0); // Wait for CGI script to finish
