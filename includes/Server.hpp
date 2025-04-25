@@ -49,6 +49,7 @@ class Server
 		void	handleGetRequest(int eventFd, std::string& request);
 		void	handleDeleteRequest(int eventFd, std::string& request);
 		void	sendError(int fd, int code, const std::string& message);
+		void	callCGI(int eventFd, std::string& request);
 		int		get_autoindex(void) const;
 		std::string	parseRequestTarget(const std::string& request); 
 		std::string	getHeader(const std::string& request, const std::string& key); 

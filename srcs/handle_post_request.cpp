@@ -1,5 +1,17 @@
 #include "Server.hpp"
-/*
+
+static void saveMapToFile(const std::map<std::string, std::string>& data, const std::string& filepath, int eventFd){
+	(void)eventFd;
+    std::ofstream file(filepath.c_str());
+    if (!file) return; // sendError(eventFd, )?
+
+    for (std::map<std::string, std::string>::const_iterator it = data.begin(); it != data.end(); ++it) {
+        file << it->first << ": " << it->second << "\n";
+    }
+
+    file.close();
+}
+
 void Server::handlePostRequest(int eventFd, std::string &request)
 {
     (void)eventFd;
@@ -118,6 +130,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
             }
         }
 
+		saveMapToFile(form_data, "www/usrInfo.txt", eventFd);
         std::string response = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: text/plain\r\n"
                                "\r\n"
@@ -135,8 +148,9 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         send(eventFd, response.c_str(), response.size(), 0);
     }
 }
-*/
 
+
+/*
 void Server::handlePostRequest(int eventFd, std::string &request)
 {
 	std::string requestTarget = parseRequestTarget(request); // e.g. "/cgi-bin/updateProfile.py"
@@ -201,4 +215,4 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 
 		//waitpid(pid, NULL, 0); // Wait for CGI script to finish
 	}
-}
+}*/

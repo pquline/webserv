@@ -1,5 +1,71 @@
 #include "Server.hpp"
 
+void Server::callCGI(int eventFd, std::string &request)
+{
+	std::string requestTarget = parseRequestTarget(request); // e.g. "/cgi-bin/updateProfile.py"
+	//std::string scriptPath = "." + requestTarget; // Assuming scripts are in ./cgi-bin/
+
+	int pipefd[2];
+	if (pipe(pipefd) == -1)
+		return sendError(eventFd, 500, "Internal Server Error (pipe)");
+
+	pid_t pid = fork();
+	if (pid < 0)
+		return sendError(eventFd, 500, "Internal Server Error (fork)");
+
+	if (pid == 0)
+	{
+		close(pipefd[0]);
+		dup2(pipefd[1], STDOUT_FILENO);
+		close(pipefd[1]);
+
+		//char *argv[] = {(char *)"/usr/bin/python3", (char *)scriptPath.c_str(), NULL};
+		char *argv[] = {(char *)"/usr/bin/python3", (char *)"./www/cgi-bin/whoami.py", NULL};
+
+		std::string contentLength = getHeader(request, "Content-Length");
+		std::string contentType = getHeader(request, "Content-Type");
+
+		std::string method = "POST";
+		char *envp[] = {
+			(char *)("REQUEST_METHOD=" + method).c_str(),
+			(char *)("CONTENT_LENGTH=" + contentLength).c_str(),
+			(char *)("CONTENT_TYPE=" + contentType).c_str(),
+			(char *)("SCRIPT_NAME=" + requestTarget).c_str(),
+			(char *)"GATEWAY_INTERFACE=CGI/1.1",
+			(char *)"SERVER_PROTOCOL=HTTP/1.1",
+			NULL
+		};
+
+		execve("/usr/bin/python3", argv, envp);
+		// error handle
+	}
+	else
+	{
+		close(pipefd[1]);
+		char buffer[8192] = {0};
+		ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
+		close(pipefd[0]);
+
+		if (n > 0)
+		{
+			std::ostringstream stream;
+			stream << strlen(buffer);
+			std::string response =
+				"HTTP/1.1 200 OK\r\n"
+				"Content-Type: text/html\r\n"
+				"Content-Length: " + stream.str() + "\r\n"
+				"\r\n" + std::string(buffer);
+			send(eventFd, response.c_str(), response.length(), 0);
+		}
+		else
+		{
+			sendError(eventFd, 500, "CGI Output Error");
+		}
+
+		//waitpid(pid, NULL, 0); // Wait for CGI script to finish
+	}
+}
+
 void 	Server::handleGetRequest(int eventFd, std::string& request)
 {
     Http_request http_request;
@@ -21,28 +87,33 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
     // Check html
     std::string file_path = "www" + uri;
     std::ifstream file(file_path.c_str());
-    if (!file.is_open())
-        return sendError(eventFd, 404, "Page Not Found");
-    std::stringstream buf;
-    buf << file.rdbuf();
-    file.close();
+	if (!file.is_open())
+		return sendError(eventFd, 404, "Page Not Found");
+	std::string checkCGI = file_path.substr(4, 3);
+	if (checkCGI == "cgi") callCGI(eventFd, request);
+	else
+	{
+		std::stringstream buf;
+		buf << file.rdbuf();
+		file.close();
 
-    std::string html = buf.str();
+		std::string html = buf.str();
 
-    std::ostringstream sizeStream;
-    sizeStream << html.size();
-    std::string sizeStr = sizeStream.str();
+		std::ostringstream sizeStream;
+		sizeStream << html.size();
+		std::string sizeStr = sizeStream.str();
 
-    std::string response = "HTTP/1.1 200 OK\r\n"
-                      "Content-Type: text/html\r\n"
-                      "Content-Length: " + sizeStr + "\r\n"
-                      "\r\n" + html;
-    // std::cerr << CYAN << response << RESET << std::endl;
-    send(eventFd, response.c_str(), response.size(), 0);
+		std::string response = "HTTP/1.1 200 OK\r\n"
+			"Content-Type: text/html\r\n"
+			"Content-Length: " + sizeStr + "\r\n"
+			"\r\n" + html;
+		// std::cerr << CYAN << response << RESET << std::endl;
+		send(eventFd, response.c_str(), response.size(), 0);
+	}
 }
 
 void 	Server::handleDeleteRequest(int eventFd, std::string& request)
 {
-    (void)eventFd;
-    (void)request;
+	(void)eventFd;
+	(void)request;
 }

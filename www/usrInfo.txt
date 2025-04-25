@@ -1,0 +1,3 @@
+firstname: Charlotte
+lastname: XU
+school: École 42
