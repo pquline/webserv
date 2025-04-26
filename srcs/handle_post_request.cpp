@@ -101,7 +101,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
             std::string name = headers.substr(name_pos, name_end - name_pos);
 
             size_t filename_pos = headers.find("filename=\"");
-            if (filename_pos != std::string::npos)
+            if (filename_pos != std::string::npos && headers[filename_pos + 10] != '\"')
             {
                 std::string upload_path = "www/pp.jpg";
 

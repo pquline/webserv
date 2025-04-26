@@ -1,5 +1,12 @@
 #include "Server.hpp"
 
+volatile sig_atomic_t g_sig = 0;
+
+static void handle_sigint(int signal)
+{
+	if (signal == SIGINT) g_sig = 1;
+}
+
 Server::Server(int autoindex, ssize_t max_body_size, std::string root, \
 	std::vector<std::string> hosts, std::vector<unsigned int> ports, \
 	std::map<unsigned int, std::string> error_pages, \
@@ -51,6 +58,7 @@ void Server::init()
 
 void Server::run()
 {
+	signal(SIGINT, handle_sigint);
 	int epollFd = epoll_create1(0);
 	if (epollFd < 0)
 		handleError("epoll_create1 failed");
@@ -65,7 +73,13 @@ void Server::run()
 	int nfds, connFd;
 	while (true)
 	{
-		nfds = epoll_wait(epollFd, events, MAX_EVENT, -1);
+		if (g_sig)
+		{
+			std::cout << GREEN << "\nSIGINT received, servers shutting down..." << RESET << std::endl;
+			// server shutdown
+			break;
+		}
+		nfds = epoll_wait(epollFd, events, MAX_EVENT, 1000);
 		if (nfds < 0)
 			handleError("epoll_wait");
 

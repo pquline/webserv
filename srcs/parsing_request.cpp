@@ -23,6 +23,6 @@ void Server::startParsing(int eventFd, ssize_t bytesRead, char *buffer)
         Server::handleDeleteRequest(eventFd, request);
     }
     else
-        sendError(eventFd, 400, "Bad Request");
+		sendError(eventFd, 400, "Bad Request");
     std::cerr << MAGENTA << "Received request:\n" << buffer << RESET << std::endl;
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cerrno>
+#include <csignal>
 #include <climits>
 #include <cstdlib>
 #include <cstring>

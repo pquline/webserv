@@ -25,18 +25,19 @@ void Server::callCGI(int eventFd, std::string &request)
 		std::string contentLength = getHeader(request, "Content-Length");
 		std::string contentType = getHeader(request, "Content-Type");
 
-		std::string method = "POST";
-		char *envp[] = {
-			(char *)("REQUEST_METHOD=" + method).c_str(),
-			(char *)("CONTENT_LENGTH=" + contentLength).c_str(),
-			(char *)("CONTENT_TYPE=" + contentType).c_str(),
-			(char *)("SCRIPT_NAME=" + requestTarget).c_str(),
-			(char *)"GATEWAY_INTERFACE=CGI/1.1",
-			(char *)"SERVER_PROTOCOL=HTTP/1.1",
-			NULL
-		};
+		std::vector<std::string> env_strings;
+		env_strings.push_back("REQUEST_METHOD=POST");
+		env_strings.push_back("CONTENT_LENGTH=" + contentLength);
+		env_strings.push_back("CONTENT_TYPE=" + contentType);
+		env_strings.push_back("SCRIPT_NAME=" + requestTarget);
 
-		execve("/usr/bin/python3", argv, envp);
+		// Now build char* array for execve
+		std::vector<char*> envp;
+		for (size_t i = 0; i < env_strings.size(); ++i)
+			envp.push_back(const_cast<char*>(env_strings[i].c_str()));
+		envp.push_back(NULL);
+
+		execve("/usr/bin/python3", &argv[0], &envp[0]);
 		// error handle
 	}
 	else
@@ -68,25 +69,25 @@ void Server::callCGI(int eventFd, std::string &request)
 
 void 	Server::handleGetRequest(int eventFd, std::string& request)
 {
-    Http_request http_request;
+	Http_request http_request;
 
-    std::string first_line= request.substr(0, request.find("\r\n"));
-    std::vector<std::string> request_splitted = ft_split(first_line, ' ');
-    if (request_splitted.size() != 3)
-    return sendError(eventFd, 400, "Bad Request");
-    if(request_splitted[2].compare(GOOD_HTTP_VERSION))
-        return sendError(eventFd, 505, "HTTP Version Not Supported");
-    http_request.set_version(request_splitted[2]);
-    std::string uri = request_splitted[1];
-    if (uri == "/") {
-        uri = "/index.html";  // Fichier par défaut
-    }
-    http_request.set_uri(uri);
-    http_request.set_headers(http_request.parse_headers(request));
-    // Check headers obligatoire
-    // Check html
-    std::string file_path = "www" + uri;
-    std::ifstream file(file_path.c_str());
+	std::string first_line= request.substr(0, request.find("\r\n"));
+	std::vector<std::string> request_splitted = ft_split(first_line, ' ');
+	if (request_splitted.size() != 3)
+		return sendError(eventFd, 400, "Bad Request");
+	if(request_splitted[2].compare(GOOD_HTTP_VERSION))
+		return sendError(eventFd, 505, "HTTP Version Not Supported");
+	http_request.set_version(request_splitted[2]);
+	std::string uri = request_splitted[1];
+	if (uri == "/") {
+		uri = "/index.html";  // Fichier par défaut
+	}
+	http_request.set_uri(uri);
+	http_request.set_headers(http_request.parse_headers(request));
+	// Check headers obligatoire
+	// Check html
+	std::string file_path = "www" + uri;
+	std::ifstream file(file_path.c_str());
 	if (!file.is_open())
 		return sendError(eventFd, 404, "Page Not Found");
 	std::string checkCGI = file_path.substr(4, 3);
