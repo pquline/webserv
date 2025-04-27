@@ -23,18 +23,18 @@ void HTTPRequest::setHeaders(const std::map<std::string, std::string> headers)
 		if (errno == 0 && *end_ptr == '\0')
 		{
 			_contentLength = len;
-			_has_body = (len > 0);
+			_hasBody = (len > 0);
 		}
 		else
 		{
 			_contentLength = 0;
-			_has_body = false;
+			_hasBody = false;
 		}
 	}
 	else
 	{
 		_contentLength = 0;
-		_has_body = false;
+		_hasBody = false;
 	}
 }
 
