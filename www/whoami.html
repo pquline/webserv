@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- ... head existant ... -->
+    <meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>My Information</title>
+	<link rel="stylesheet" href="styles.css">
     <script>
         function loadUserData() {
             fetch('/userdata.json')
@@ -17,7 +20,7 @@
                     `;
                 })
                 .catch(error => {
-                    document.getElementById('user-data').innerHTML = 
+                    document.getElementById('user-data').innerHTML =
                         '<p>No user data found. Please fill the <a href="/editmyinfo.html">form</a> first.</p>';
                 });
         }

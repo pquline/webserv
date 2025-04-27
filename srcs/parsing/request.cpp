@@ -293,28 +293,25 @@ void Server::handleDeleteRequest(int eventFd, std::string &request)
 
 void Server::parseRequest(int eventFd, ssize_t bytesRead, char *buffer)
 {
-	(void)eventFd;
-	//(void)bytesRead;
 	std::string request(buffer, static_cast<size_t>(bytesRead));
 
 	std::string first_line = request.substr(0, request.find("\r\n"));
 	if (first_line.find("GET") != std::string::npos)
 	{
-		std::cerr << YELLOW << "GET received" << RESET << std::endl;
+		std::cerr << YELLOW DEBUG_PREFIX << "[GET] request received:" << RESET << std::endl;
 		Server::handleGetRequest(eventFd, request);
 	}
 	else if (first_line.find("POST") != std::string::npos)
 	{
-		std::cerr << GREEN << "POST received" << RESET << std::endl;
+		std::cerr << YELLOW DEBUG_PREFIX << "[POST] request received:" << RESET << std::endl;
 		Server::handlePostRequest(eventFd, request);
 	}
 	else if (first_line.find("DELETE") != std::string::npos)
 	{
-		std::cerr << GRAY << "DELETE received" << RESET << std::endl;
+		std::cerr << YELLOW DEBUG_PREFIX << "[DELETE] request received:" << RESET << std::endl;
 		Server::handleDeleteRequest(eventFd, request);
 	}
 	else
 		sendError(eventFd, 400, "Bad Request");
-	std::cerr << MAGENTA << "Received request:\n"
-			  << buffer << RESET << std::endl;
+	std::cerr << GRAY << buffer << RESET << std::endl;
 };

@@ -32,6 +32,7 @@
 #define ERASE = "\033[2K\r"
 #define RESET "\e[0m"
 
+#define DEBUG_PREFIX "[DEBUG]: "
 #define ERROR_PREFIX "[Error]: "
 #define ERROR_USAGE "Usage: ./webserv [file.conf]"
 #define ERROR_OPEN "Cannot open "

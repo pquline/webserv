@@ -52,7 +52,6 @@ void Server::init()
 
 	if (listen(m_serverFd, 10) < 0)
 		handleError("Listening failed");
-	std::cout << GREEN << "Server is listening on port " << *_ports.begin() << "..." << RESET << std::endl;
 	std::cout << GREEN << "http://localhost:" << *_ports.begin() << "..." << RESET << std::endl;
 }
 
@@ -151,7 +150,7 @@ void Server::sendError(int fd, int code, const std::string &message)
 	std::string body = generateErrorPage(code, message);
 	std::ostringstream response;
 
-	std::cerr << RED "[ERROR]: " << code << " " << message << RESET << std::endl;
+	std::cerr << BLUE ERROR_PREFIX << code << " " << message << RESET << std::endl;
 	response << "HTTP/1.1 " << code << " " << message << "\r\n"
 			 << "Content-Type: text/html\r\n"
 			 << "Content-Length: " << body.size() << "\r\n"
