@@ -1,129 +1,69 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Your Information</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Edit Your Information</title>
 	<link rel="icon" href="/favicon.ico" />
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="text"],
-        input[type="number"],
-        input[type="date"],
-        input[type="file"],
-        select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .button-container {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-        .button-back {
-            background-color: #f44336;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .button-back:hover {
-            background-color: #d32f2f;
-        }
-        .button-submit {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .button-submit:hover {
-            background-color: #45a049;
-        }
-        .preview {
-            margin-top: 10px;
-            max-width: 200px;
-            max-height: 200px;
-            display: none;
-        }
-    </style>
+	<link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-    <h1>Edit Your Information</h1>
-    <form id="infoForm" action="/" method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label for="nom">First Name:</label>
-            <input type="text" id="firstname" name="firstname"><!-- required -->
-        </div>
+	<div class="container">
+		<h1>Edit Your Information</h1>
+		<form id="infoForm" action="/" method="POST" enctype="multipart/form-data">
+			<div class="form-group">
+				<label for="nom">First Name:</label>
+				<input type="text" id="firstname" name="firstname"><!-- required -->
+			</div>
 
-        <div class="form-group">
-            <label for="prenom">Last Name:</label>
-            <input type="text" id="lastname" name="lastname"><!-- required -->
-        </div>
+			<div class="form-group">
+				<label for="prenom">Last Name:</label>
+				<input type="text" id="lastname" name="lastname"><!-- required -->
+			</div>
 
-        <div class="form-group">
-            <label for="school">School:</label>
-            <input type="text" id="school" name="school"><!-- required -->
-        </div>
+			<div class="form-group">
+				<label for="school">School:</label>
+				<input type="text" id="school" name="school"><!-- required -->
+			</div>
 
-        <div class="form-group">
-            <label for="photo">Profile Picture:</label>
-            <input type="file" id="photo" name="photo" accept="image/*">
-            <img id="preview" class="preview" alt="Image preview">
-        </div>
+			<div class="form-group">
+				<label for="photo">Profile Picture:</label>
+				<input type="file" id="photo" name="photo" accept="image/*">
+				<img id="preview" class="preview" alt="Image preview">
+			</div>
 
-        <div class="button-container">
-            <button type="button" class="button-back" onclick="window.history.back()">Back</button>
-            <button type="submit" class="button-submit">Send</button>
-        </div>
-    </form>
+			<div class="button-container">
+				<button type="button" class="button edit" onclick="window.history.back()">Back</button>
+				<button type="submit" class="button edit">Send</button>
+			</div>
+		</form>
+	</div>
 
-    <script>
-        document.getElementById('photo').addEventListener('change', function(e) {
-            const preview = document.getElementById('preview');
-            const file = e.target.files[0];
+	<script>
+		document.getElementById('photo').addEventListener('change', function (e) {
+			const preview = document.getElementById('preview');
+			const file = e.target.files[0];
 
-            if (file) {
-				if (file.size > 10240) { 
+			if (file) {
+				if (file.size > 10240) {
 					alert('File too large. Maximum allowed size is 10KB.');
-					e.target.value = ''; 
-					preview.style.display = 'none'; 
+					e.target.value = '';
+					preview.style.display = 'none';
 					return;
-            	}
-                const reader = new FileReader();
+				}
+				const reader = new FileReader();
 
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                }
+				reader.onload = function (e) {
+					preview.src = e.target.result;
+					preview.style.display = 'block';
+				}
 
-                reader.readAsDataURL(file);
-            }
-        });
-    </script>
+				reader.readAsDataURL(file);
+			}
+		});
+	</script>
 </body>
+
 </html>
