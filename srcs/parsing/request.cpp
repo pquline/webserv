@@ -433,30 +433,21 @@ void Server::handleDeleteRequest(int eventFd, std::string &request)
 	std::vector<std::string> request_splitted = ft_split(first_line, ' ');
 	if (request_splitted.size() != 3)
 		return sendError(eventFd, 400, "Bad Request");
-
 	if (request_splitted[2].compare(GOOD_HTTP_VERSION))
 		return sendError(eventFd, 505, "HTTP Version Not Supported");
 
 	std::string uri = request_splitted[1];
 	std::string file_path = "www" + uri;
 
-	// Check if the file exists
 	if (access(file_path.c_str(), F_OK) != 0)
 		return sendError(eventFd, 404, "Not Found");
-
-	// Check if it's a directory
 	struct stat path_stat;
 	if (stat(file_path.c_str(), &path_stat) != 0)
 		return sendError(eventFd, 500, "Internal Server Error");
-
 	if (S_ISDIR(path_stat.st_mode))
 		return sendError(eventFd, 403, "Forbidden");
-
-	// Try to delete the file
 	if (remove(file_path.c_str()) != 0)
 		return sendError(eventFd, 500, "Internal Server Error");
-
-	// Send success response
 	std::string response = "HTTP/1.1 204 No Content\r\n"
 						  "Content-Length: 0\r\n"
 						  "\r\n";
