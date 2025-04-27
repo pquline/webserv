@@ -1,85 +1,19 @@
 # include "Server.hpp"
 
-HTTPRequest::HTTPRequest()
-{
-};
+HTTPRequest::HTTPRequest() {};
 
-std::string HTTPRequest::get_content_type() const
+void HTTPRequest::setHeaders(const std::map<std::string, std::string> headers)
 {
-    return(_ContentType);
-};
+    Headers = headers;
 
-std::string HTTPRequest::get_method() const
-{
-    return(_method);
-};
-std::string HTTPRequest::get_uri() const
-{
-    return(_uri);
-};
-
-std::string HTTPRequest::get_version() const
-{
-    return(_http_version);
-};
-
-bool HTTPRequest::get_has_body() const
-{
-    return(_has_body);
-};
-
-size_t HTTPRequest::get_content_length() const
-{
-    return(_contentLength);
-};
-
-std::map<std::string, std::string>HTTPRequest::get_headers()const
-{
-    return(_headers);
-}
-
-void HTTPRequest::set_content_type(const std::string& type)
-{
-    _ContentType = type;
-}
-
-void HTTPRequest::set_method(const std::string& m)
-{
-    _method = m;
-}
-
-void HTTPRequest::set_uri(const std::string& u)
-{
-    _uri = u;
-}
-
-void HTTPRequest::set_version(const std::string& version)
-{
-    _http_version = version;
-}
-
-void HTTPRequest::set_has_body(bool has)
-{
-    _has_body = has;
-}
-
-void HTTPRequest::set_content_length(size_t length)
-{
-    _contentLength = length;
-}
-
-void HTTPRequest::set_headers(const std::map<std::string, std::string> headers)
-{
-    _headers = headers;
-
-    std::map<std::string, std::string>::const_iterator content_type_it = _headers.find("Content-Type");
-    if (content_type_it != _headers.end())
-        _ContentType = content_type_it->second;
+    std::map<std::string, std::string>::const_iterator content_type_it = Headers.find("Content-Type");
+    if (content_type_it != Headers.end())
+        _contentType = content_type_it->second;
     else
-        _ContentType.clear();
+        _contentType.clear();
 
-    std::map<std::string, std::string>::const_iterator content_length_it = _headers.find("Content-Length");
-    if (content_length_it != _headers.end()) {
+    std::map<std::string, std::string>::const_iterator content_length_it = Headers.find("Content-Length");
+    if (content_length_it != Headers.end()) {
         const char* str = content_length_it->second.c_str();
         char* end_ptr;
         errno = 0;
@@ -103,7 +37,7 @@ void HTTPRequest::set_headers(const std::map<std::string, std::string> headers)
     }
 }
 
-std::map<std::string, std::string> HTTPRequest::parse_headers(std::string& request)
+std::map<std::string, std::string> HTTPRequest::parseHeaders(std::string& request)
 {
     std::map<std::string, std::string> headers;
 

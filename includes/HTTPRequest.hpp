@@ -6,36 +6,35 @@
 class HTTPRequest
 {
 public:
-    HTTPRequest();
+	HTTPRequest();
 
 private:
-    std::string _method;
-    std::string _uri;
-    std::string _http_version;
+	std::string _method;
+	std::string _uri;
+	std::string _version;
 
-    bool _has_body;
-    std::string _ContentType;
-    size_t _contentLength;
+	bool _has_body;
+	std::string _contentType;
+	size_t _contentLength;
 
-    std::map<std::string, std::string> _headers;
+	std::map<std::string, std::string> Headers;
 
 public:
+	std::string getMethod() const { return (_method); };
+	std::string getURI() const { return (_uri); };
+	std::string getVersion() const { return (_version); };
+	std::string getContentType() const { return (_contentType); };
+	bool getHasBody() const { return (_has_body); };
+	size_t getContentLength() const { return (_contentLength); };
+	std::map<std::string, std::string> getHeaders() const;
 
-    std::string get_method() const;
-    std::string get_uri() const;
-    std::string get_version() const;
-    std::string get_content_type() const;
-    bool get_has_body() const;
-    size_t get_content_length() const;
-    std::map<std::string, std::string> get_headers() const;
+	void setContentType(const std::string &type) { _contentType = type; };
+	void setMethod(const std::string &m) { _method = m; };
+	void setURI(const std::string &u) { _uri = u; };
+	void setVersion(const std::string &version) { _version = version; };
+	void setHasBody(bool has) { _has_body = has; };
+	void setContentLength(size_t length) { _contentLength = length; };
+	void setHeaders(const std::map<std::string, std::string> headers);
 
-    void set_content_type(const std::string& type);
-    void set_method(const std::string& m);
-    void set_uri(const std::string& u);
-    void set_version(const std::string& version);
-    void set_has_body(bool has);
-    void set_content_length(size_t length);
-    void set_headers(const std::map<std::string, std::string> headers);
-
-    std::map<std::string, std::string> parse_headers(std::string& request);
+	std::map<std::string, std::string> parseHeaders(std::string &request);
 };

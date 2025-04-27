@@ -31,12 +31,12 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 
 	if (request_splitted[2].compare(GOOD_HTTP_VERSION))
 		return sendError(eventFd, 505, "HTTP Version Not Supported");
-	http_request.set_version(request_splitted[2]);
+	http_request.setVersion(request_splitted[2]);
 	std::string uri = request_splitted[1];
-	http_request.set_uri(uri);
-	http_request.set_headers(http_request.parse_headers(request));
+	http_request.setURI(uri);
+	http_request.setHeaders(http_request.parseHeaders(request));
 
-	size_t content_length = http_request.get_content_length();
+	size_t content_length = http_request.getContentLength();
 	if (content_length == 0)
 		return sendError(eventFd, 411, "Length Required");
 
@@ -44,7 +44,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 		return sendError(eventFd, 413, "Entity Too Large");
 
 	std::string body = request.substr(header_end + 4, content_length);
-	std::string content_type = http_request.get_content_type();
+	std::string content_type = http_request.getContentType();
 
 	if (content_type.find("application/x-www-form-urlencoded") != std::string::npos)
 	{
@@ -232,14 +232,14 @@ void Server::handleGetRequest(int eventFd, std::string &request)
 		return sendError(eventFd, 400, "Bad Request");
 	if (request_splitted[2].compare(GOOD_HTTP_VERSION))
 		return sendError(eventFd, 505, "HTTP Version Not Supported");
-	http_request.set_version(request_splitted[2]);
+	http_request.setVersion(request_splitted[2]);
 	std::string uri = request_splitted[1];
 	if (uri == "/")
 	{
 		uri = "/index.html"; // Fichier par défaut
 	}
-	http_request.set_uri(uri);
-	http_request.set_headers(http_request.parse_headers(request));
+	http_request.setURI(uri);
+	http_request.setHeaders(http_request.parseHeaders(request));
 	// Check headers obligatoire
 	// Check html
 	std::string file_path = "www" + uri;
