@@ -59,6 +59,7 @@ h1 {
 		0 4px 30px rgba(0, 0, 0, 0.1);
 	overflow: hidden;
 	transition: all 0.3s ease;
+	margin-top: 30px;
 }
 
 .button::before {
@@ -169,4 +170,52 @@ select:focus {
 	display: none;
 	border-radius: 10px;
 	border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.info-container {
+	margin: 20px 0;
+}
+
+.info-container p {
+	margin: 0px 0px;
+	padding: 10px 15px;
+	transition: all 0.3s ease;
+	text-align: justify;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.info-container .form-group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 10px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.info-container .form-group label {
+    width: 100px;
+    margin: 0;
+    color: #222;
+    font-size: 16px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.info-container .form-group p {
+    margin: 0;
+    color: #21023a;
+    font-weight: bold;
+    font-size: 16px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    padding-left: 10px;
 }

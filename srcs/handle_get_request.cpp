@@ -98,17 +98,27 @@ void 	Server::handleGetRequest(int eventFd, std::string& request)
 		buf << file.rdbuf();
 		file.close();
 
-		std::string html = buf.str();
+		std::string content = buf.str();
+		std::string content_type = "text/html"; // Default content type
+
+		// Determine content type based on file extension
+		size_t dot_pos = file_path.find_last_of('.');
+		if (dot_pos != std::string::npos) {
+			std::string extension = file_path.substr(dot_pos);
+			if (extension == ".css") {
+				content_type = "text/css";
+			}
+			// Add more content types here as needed
+		}
 
 		std::ostringstream sizeStream;
-		sizeStream << html.size();
+		sizeStream << content.size();
 		std::string sizeStr = sizeStream.str();
 
 		std::string response = "HTTP/1.1 200 OK\r\n"
-			"Content-Type: text/html\r\n"
+			"Content-Type: " + content_type + "\r\n"
 			"Content-Length: " + sizeStr + "\r\n"
-			"\r\n" + html;
-		// std::cerr << CYAN << response << RESET << std::endl;
+			"\r\n" + content;
 		send(eventFd, response.c_str(), response.size(), 0);
 	}
 }

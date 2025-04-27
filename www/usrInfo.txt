@@ -1,4 +1,4 @@
 firstname: Charlotte
 lastname: Xu
-photo: 
+photo:
 school: 42
