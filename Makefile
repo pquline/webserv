@@ -10,9 +10,6 @@ SRC				+=	main.cpp
 SRC				+=	Server.cpp
 SRC				+=	Location.cpp
 SRC				+=	HTTPRequest.cpp
-SRC				+=	handle_get_request.cpp
-SRC				+=	handle_post_request.cpp
-SRC				+=	post_request_utils.cpp
 SRC				+=	utils.cpp
 
 # --------------------------------- PARSING --------------------------------- #

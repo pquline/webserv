@@ -43,7 +43,7 @@ class Server
 
 		void	handleError(const std::string& msg);
 		void	setNonBlocking(int fd);
-		void	startParsing(int eventFd, ssize_t bytesRead,char *buffer);
+		void	parseRequest(int eventFd, ssize_t bytesRead,char *buffer);
 		void	handlePostRequest(int eventFd, std::string& request);
 		void	handleGetRequest(int eventFd, std::string& request);
 		void	handleDeleteRequest(int eventFd, std::string& request);
@@ -65,6 +65,3 @@ class Server
 		void	init();
 		void	run();
 };
-
-std::string url_decode(const std::string& str);
-std::map<std::string, std::string> parse_url_encoded(const std::string& body);

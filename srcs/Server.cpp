@@ -111,7 +111,7 @@ void Server::run()
 					epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
 					continue;
 				}
-				Server::startParsing(eventFd, bytesRead, buffer);
+				Server::parseRequest(eventFd, bytesRead, buffer);
 
 				close(eventFd);
 				epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
