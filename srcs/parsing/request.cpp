@@ -1,4 +1,7 @@
 #include "Server.hpp"
+#include <sys/wait.h> // For waitpid
+#include <sys/select.h> // For select
+#include <sys/time.h>   // For struct timeval
 
 static void saveMapToFile(const std::map<std::string, std::string> &data, const std::string &filepath, int eventFd)
 {
@@ -17,7 +20,6 @@ static void saveMapToFile(const std::map<std::string, std::string> &data, const 
 
 void Server::handlePostRequest(int eventFd, std::string &request)
 {
-	(void)eventFd;
 	HTTPRequest http_request;
 
 	size_t header_end = request.find("\r\n\r\n");
@@ -35,6 +37,21 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 	std::string uri = request_splitted[1];
 	http_request.setURI(uri);
 	http_request.setHeaders(http_request.parseHeaders(request));
+
+	// Check if this is a CGI file based on extension
+	bool isCGI = false;
+	size_t dot_pos = uri.find_last_of('.');
+	if (dot_pos != std::string::npos) {
+		std::string extension = uri.substr(dot_pos);
+		if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi") {
+			isCGI = true;
+		}
+	}
+
+	if (isCGI) {
+		callCGI(eventFd, request);
+		return;
+	}
 
 	size_t content_length = http_request.getContentLength();
 	if (content_length == 0)
@@ -156,7 +173,39 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 void Server::callCGI(int eventFd, std::string &request)
 {
 	std::string requestTarget = parseRequestTarget(request); // e.g. "/cgi-bin/updateProfile.py"
-	// std::string scriptPath = "." + requestTarget; // Assuming scripts are in ./cgi-bin/
+	std::string scriptPath = "www" + requestTarget; // Full path to the script
+
+	// Check if the file exists
+	if (access(scriptPath.c_str(), F_OK) != 0) {
+		return sendError(eventFd, 404, "CGI Script Not Found");
+	}
+
+	// Check if the file is executable
+	if (access(scriptPath.c_str(), X_OK) != 0) {
+		return sendError(eventFd, 403, "CGI Script Not Executable");
+	}
+
+	// Determine the interpreter based on file extension
+	std::string interpreter;
+	size_t dot_pos = scriptPath.find_last_of('.');
+	if (dot_pos != std::string::npos) {
+		std::string extension = scriptPath.substr(dot_pos);
+		if (extension == ".py") {
+			interpreter = "/usr/bin/python3";
+		} else if (extension == ".php") {
+			interpreter = "/usr/bin/php";
+		} else if (extension == ".pl") {
+			interpreter = "/usr/bin/perl";
+		} else if (extension == ".sh") {
+			interpreter = "/bin/bash";
+		} else {
+			// For other extensions, try to execute directly
+			interpreter = "";
+		}
+	} else {
+		// No extension, try to execute directly
+		interpreter = "";
+	}
 
 	int pipefd[2];
 	if (pipe(pipefd) == -1)
@@ -166,23 +215,39 @@ void Server::callCGI(int eventFd, std::string &request)
 	if (pid < 0)
 		return sendError(eventFd, 500, "Internal Server Error (fork)");
 
-	if (pid == 0)
-	{
+	if (pid == 0) {
+		// Child process
 		close(pipefd[0]);
 		dup2(pipefd[1], STDOUT_FILENO);
 		close(pipefd[1]);
 
-		// char *argv[] = {(char *)"/usr/bin/python3", (char *)scriptPath.c_str(), NULL};
-		char *argv[] = {(char *)"/usr/bin/python3", (char *)"./www/cgi-bin/whoami.py", NULL};
-
+		// Prepare environment variables
 		std::string contentLength = getHeader(request, "Content-Length");
 		std::string contentType = getHeader(request, "Content-Type");
+		std::string queryString = "";
 
+		// Extract query string if present
+		size_t queryPos = requestTarget.find('?');
+		if (queryPos != std::string::npos) {
+			queryString = requestTarget.substr(queryPos + 1);
+			requestTarget = requestTarget.substr(0, queryPos);
+		}
+
+		// Set up environment variables
 		std::vector<std::string> env_strings;
-		env_strings.push_back("REQUEST_METHOD=POST");
+		env_strings.push_back("REQUEST_METHOD=" + (request.find("GET") != std::string::npos ? std::string("GET") : std::string("POST")));
 		env_strings.push_back("CONTENT_LENGTH=" + contentLength);
 		env_strings.push_back("CONTENT_TYPE=" + contentType);
 		env_strings.push_back("SCRIPT_NAME=" + requestTarget);
+		env_strings.push_back("QUERY_STRING=" + queryString);
+		env_strings.push_back("PATH_INFO=");
+		env_strings.push_back("PATH_TRANSLATED=");
+		env_strings.push_back("REMOTE_ADDR=127.0.0.1");
+		env_strings.push_back("REMOTE_HOST=localhost");
+		env_strings.push_back("SERVER_NAME=localhost");
+		env_strings.push_back("SERVER_PORT=8080");
+		env_strings.push_back("SERVER_PROTOCOL=HTTP/1.1");
+		env_strings.push_back("SERVER_SOFTWARE=WebServ/1.0");
 
 		// Now build char* array for execve
 		std::vector<char *> envp;
@@ -190,35 +255,90 @@ void Server::callCGI(int eventFd, std::string &request)
 			envp.push_back(const_cast<char *>(env_strings[i].c_str()));
 		envp.push_back(NULL);
 
-		execve("/usr/bin/python3", &argv[0], &envp[0]);
-		// error handle
-	}
-	else
-	{
+		// Prepare argv for execve
+		std::vector<char *> argv;
+		if (!interpreter.empty()) {
+			argv.push_back(const_cast<char *>(interpreter.c_str()));
+		}
+		argv.push_back(const_cast<char *>(scriptPath.c_str()));
+		argv.push_back(NULL);
+
+		// Execute the CGI script
+		if (interpreter.empty()) {
+			// Execute directly
+			execve(scriptPath.c_str(), &argv[0], &envp[0]);
+		} else {
+			// Execute with interpreter
+			execve(interpreter.c_str(), &argv[0], &envp[0]);
+		}
+
+		// If we get here, execve failed
+		exit(1);
+	} else {
+		// Parent process
 		close(pipefd[1]);
-		char buffer[8192] = {0};
-		ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
+
+		// Read all output from the CGI script
+		std::string output;
+		char buffer[4096];
+		ssize_t n;
+
+		// Set a timeout for reading
+		fd_set readfds;
+		struct timeval tv;
+		FD_ZERO(&readfds);
+		FD_SET(pipefd[0], &readfds);
+		tv.tv_sec = 5;  // 5 second timeout
+		tv.tv_usec = 0;
+
+		while (true) {
+			int ready = select(pipefd[0] + 1, &readfds, NULL, NULL, &tv);
+			if (ready == -1) {
+				// Error in select
+				break;
+			} else if (ready == 0) {
+				// Timeout
+				break;
+			} else {
+				// Data available
+				n = read(pipefd[0], buffer, sizeof(buffer) - 1);
+				if (n <= 0) {
+					// End of file or error
+					break;
+				}
+				buffer[n] = '\0';
+				output.append(buffer, static_cast<unsigned long>(n));
+			}
+		}
+
 		close(pipefd[0]);
 
-		if (n > 0)
-		{
-			std::ostringstream stream;
-			stream << strlen(buffer);
-			std::string response =
-				"HTTP/1.1 200 OK\r\n"
-				"Content-Type: text/html\r\n"
-				"Content-Length: " +
-				stream.str() + "\r\n"
-							   "\r\n" +
-				std::string(buffer);
-			send(eventFd, response.c_str(), response.length(), 0);
-		}
-		else
-		{
+		// Wait for the child process to finish
+		int status;
+		waitpid(pid, &status, 0);
+
+		if (!output.empty()) {
+			// Check if the output already contains HTTP headers
+			size_t header_end = output.find("\r\n\r\n");
+			if (header_end != std::string::npos) {
+				// Output already contains HTTP headers, send it as is
+				send(eventFd, output.c_str(), output.length(), 0);
+			} else {
+				// Output doesn't contain HTTP headers, add them
+				std::ostringstream stream;
+				stream << output.length();
+				std::string response =
+					"HTTP/1.1 200 OK\r\n"
+					"Content-Type: text/html\r\n"
+					"Content-Length: " +
+					stream.str() + "\r\n"
+								   "\r\n" +
+					output;
+				send(eventFd, response.c_str(), response.length(), 0);
+			}
+		} else {
 			sendError(eventFd, 500, "CGI Output Error");
 		}
-
-		// waitpid(pid, NULL, 0); // Wait for CGI script to finish
 	}
 }
 
@@ -240,17 +360,27 @@ void Server::handleGetRequest(int eventFd, std::string &request)
 	}
 	http_request.setURI(uri);
 	http_request.setHeaders(http_request.parseHeaders(request));
-	// Check headers obligatoire
-	// Check html
+
 	std::string file_path = "www" + uri;
+
+	// Check if the file exists
 	std::ifstream file(file_path.c_str());
 	if (!file.is_open())
 		return sendError(eventFd, 404, "Page Not Found");
-	std::string checkCGI = file_path.substr(4, 3);
-	if (checkCGI == "cgi")
+
+	// Check if this is a CGI file based on extension
+	bool isCGI = false;
+	size_t dot_pos = file_path.find_last_of('.');
+	if (dot_pos != std::string::npos) {
+		std::string extension = file_path.substr(dot_pos);
+		if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi") {
+			isCGI = true;
+		}
+	}
+
+	if (isCGI) {
 		callCGI(eventFd, request);
-	else
-	{
+	} else {
 		std::stringstream buf;
 		buf << file.rdbuf();
 		file.close();
@@ -259,13 +389,22 @@ void Server::handleGetRequest(int eventFd, std::string &request)
 		std::string content_type = "text/html"; // Default content type
 
 		// Determine content type based on file extension
-		size_t dot_pos = file_path.find_last_of('.');
-		if (dot_pos != std::string::npos)
-		{
+		if (dot_pos != std::string::npos) {
 			std::string extension = file_path.substr(dot_pos);
-			if (extension == ".css")
-			{
+			if (extension == ".css") {
 				content_type = "text/css";
+			} else if (extension == ".js") {
+				content_type = "application/javascript";
+			} else if (extension == ".png") {
+				content_type = "image/png";
+			} else if (extension == ".jpg" || extension == ".jpeg") {
+				content_type = "image/jpeg";
+			} else if (extension == ".gif") {
+				content_type = "image/gif";
+			} else if (extension == ".ico") {
+				content_type = "image/x-icon";
+			} else if (extension == ".txt") {
+				content_type = "text/plain";
 			}
 			// Add more content types here as needed
 		}

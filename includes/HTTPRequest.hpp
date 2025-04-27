@@ -9,14 +9,12 @@ public:
 	HTTPRequest();
 
 private:
+	bool _hasBody;
 	std::string _method;
 	std::string _uri;
 	std::string _version;
-
-	bool _hasBody;
 	std::string _contentType;
 	size_t _contentLength;
-
 	std::map<std::string, std::string> _headers;
 
 public:
@@ -34,7 +32,7 @@ public:
 	void setVersion(const std::string &version) { _version = version; };
 	void setHasBody(bool has) { _hasBody = has; };
 	void setContentLength(size_t length) { _contentLength = length; };
-	void setHeaders(const std::map<std::string, std::string> headers);
 
+	void setHeaders(const std::map<std::string, std::string> headers);
 	std::map<std::string, std::string> parseHeaders(std::string &request);
 };
