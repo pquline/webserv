@@ -1,6 +1,6 @@
 #include "webserv.hpp"
 
-static void	delete_servers(std::vector<Server *> &servers)
+static void	deleteServers(std::vector<Server *> &servers)
 {
 	for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); it++)
 		delete(*it);
@@ -22,14 +22,14 @@ int	main(int argc, char **argv)
 	{
 		checkConfPathname(conf);
 		parseConfigurationFile(conf, servers);
-		delete_servers(servers);
+		deleteServers(servers);
 		return (EXIT_SUCCESS);
 	}
 	catch (const std::exception &e)
 	{
 		std::cerr << RED << ERROR_PREFIX << e.what() << RESET << std::endl;
 		if (!servers.empty())
-			delete_servers(servers);
+			deleteServers(servers);
 		return (EXIT_FAILURE);
 	}
 }
