@@ -17,7 +17,7 @@ private:
 	std::string _contentType;
 	size_t _contentLength;
 
-	std::map<std::string, std::string> Headers;
+	std::map<std::string, std::string> _headers;
 
 public:
 	std::string getMethod() const { return (_method); };
@@ -26,7 +26,7 @@ public:
 	std::string getContentType() const { return (_contentType); };
 	bool getHasBody() const { return (_has_body); };
 	size_t getContentLength() const { return (_contentLength); };
-	std::map<std::string, std::string> getHeaders() const;
+	std::map<std::string, std::string> getHeaders() const { return (_headers); };
 
 	void setContentType(const std::string &type) { _contentType = type; };
 	void setMethod(const std::string &m) { _method = m; };
