@@ -1,9 +1,12 @@
 #pragma once
 
-class Http_request
+#include <string>
+#include <map>
+
+class HTTPRequest
 {
 public:
-    Http_request();
+    HTTPRequest();
 
 private:
     std::string _method;

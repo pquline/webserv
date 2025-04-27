@@ -15,7 +15,7 @@ static void saveMapToFile(const std::map<std::string, std::string>& data, const 
 void Server::handlePostRequest(int eventFd, std::string &request)
 {
     (void)eventFd;
-    Http_request http_request;
+    HTTPRequest http_request;
 
     size_t header_end = request.find("\r\n\r\n");
     if (header_end == std::string::npos)

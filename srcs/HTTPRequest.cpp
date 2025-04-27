@@ -1,74 +1,74 @@
 # include "Server.hpp"
 
-Http_request::Http_request()
+HTTPRequest::HTTPRequest()
 {
 };
 
-std::string Http_request::get_content_type() const
+std::string HTTPRequest::get_content_type() const
 {
     return(_ContentType);
 };
 
-std::string Http_request::get_method() const
+std::string HTTPRequest::get_method() const
 {
     return(_method);
 };
-std::string Http_request::get_uri() const
+std::string HTTPRequest::get_uri() const
 {
     return(_uri);
 };
 
-std::string Http_request::get_version() const
+std::string HTTPRequest::get_version() const
 {
     return(_http_version);
 };
 
-bool Http_request::get_has_body() const
+bool HTTPRequest::get_has_body() const
 {
     return(_has_body);
 };
 
-size_t Http_request::get_content_length() const
+size_t HTTPRequest::get_content_length() const
 {
     return(_contentLength);
 };
 
-std::map<std::string, std::string>Http_request::get_headers()const
+std::map<std::string, std::string>HTTPRequest::get_headers()const
 {
     return(_headers);
 }
 
-void Http_request::set_content_type(const std::string& type)
+void HTTPRequest::set_content_type(const std::string& type)
 {
     _ContentType = type;
 }
 
-void Http_request::set_method(const std::string& m)
+void HTTPRequest::set_method(const std::string& m)
 {
     _method = m;
 }
 
-void Http_request::set_uri(const std::string& u)
+void HTTPRequest::set_uri(const std::string& u)
 {
     _uri = u;
 }
 
-void Http_request::set_version(const std::string& version)
+void HTTPRequest::set_version(const std::string& version)
 {
     _http_version = version;
 }
 
-void Http_request::set_has_body(bool has)
+void HTTPRequest::set_has_body(bool has)
 {
     _has_body = has;
 }
 
-void Http_request::set_content_length(size_t length)
+void HTTPRequest::set_content_length(size_t length)
 {
     _contentLength = length;
 }
 
-void Http_request::set_headers(const std::map<std::string, std::string> headers)
+void HTTPRequest::set_headers(const std::map<std::string, std::string> headers)
 {
     _headers = headers;
 
@@ -103,7 +103,7 @@ void Http_request::set_headers(const std::map<std::string, std::string> headers)
     }
 }
 
-std::map<std::string, std::string> Http_request::parse_headers(std::string& request)
+std::map<std::string, std::string> HTTPRequest::parse_headers(std::string& request)
 {
     std::map<std::string, std::string> headers;
 

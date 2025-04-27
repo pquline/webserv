@@ -17,7 +17,7 @@
 # include <unistd.h>
 # include <sstream>
 # include "webserv.hpp"
-# include "http_request.hpp"
+# include "HTTPRequest.hpp"
 # include "response.hpp"
 # include "Location.hpp"
 
@@ -51,8 +51,8 @@ class Server
 		void	sendError(int fd, int code, const std::string& message);
 		void	callCGI(int eventFd, std::string& request);
 		int		get_autoindex(void) const;
-		std::string	parseRequestTarget(const std::string& request); 
-		std::string	getHeader(const std::string& request, const std::string& key); 
+		std::string	parseRequestTarget(const std::string& request);
+		std::string	getHeader(const std::string& request, const std::string& key);
 
 
 	public:
