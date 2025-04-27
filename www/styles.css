@@ -7,7 +7,7 @@ body {
 	margin: 0;
 	background: linear-gradient(-45deg, #b388eb, #d8b4f8, #fbc2eb, #fcd5ce);
 	background-size: 400% 400%;
-	animation: gradientAnimation 15s ease infinite;
+	animation: gradientAnimation 10s ease infinite;
 }
 
 @keyframes gradientAnimation {
@@ -158,6 +158,10 @@ select:focus {
 	margin-top: 50px;
 }
 
+.button-container-2 {
+	margin-top: 20px;
+}
+
 .edit {
 	margin-left: 0px;
 	margin-right: 0px;
@@ -218,4 +222,8 @@ select:focus {
     align-items: center;
     flex: 1;
     padding-left: 10px;
+}
+
+.error-message {
+	font-weight: bold;
 }

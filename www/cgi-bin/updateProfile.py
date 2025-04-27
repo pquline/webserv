@@ -22,8 +22,8 @@ with open("../user_info.txt", "w") as f:
 if "photo" in form:
     fileitem = form["photo"]
     if fileitem.filename:
-        # Save the uploaded file as pp.jpg
-        filepath = "../pp.jpg"
+        # Save the uploaded file as default.png
+        filepath = "../default.png"
         with open(filepath, 'wb') as f:
             f.write(fileitem.file.read())
 

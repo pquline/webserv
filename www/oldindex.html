@@ -81,7 +81,7 @@
         <!-- Photo de profil -->
         <div id="profile-photo">
             <script>
-                var photoPath = "../pp.jpg";
+                var photoPath = "../default.png";
                 var defaultPhoto = "/default.jpg";
                 var profileImg = new Image();
 
@@ -92,7 +92,7 @@
                 };
 
                 profileImg.onerror = function() {
-                    // Si pp.jpg n'existe pas, on essaie default.jpg
+                    // Si default.png n'existe pas, on essaie default.jpg
                     var defaultImg = new Image();
                     defaultImg.onload = function() {
                         document.getElementById('profile-photo').innerHTML = `

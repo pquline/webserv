@@ -103,13 +103,13 @@ void Server::handlePostRequest(int eventFd, std::string &request)
             size_t filename_pos = headers.find("filename=\"");
             if (filename_pos != std::string::npos && headers[filename_pos + 10] != '\"')
             {
-                std::string upload_path = "www/pp.jpg";
+                std::string upload_path = "www/default.png";
 
                 // Overwrite if file already exists
                 if (access(upload_path.c_str(), F_OK) == 0)
                 {
                     if (remove(upload_path.c_str()) != 0)
-                        return sendError(eventFd, 500, "Internal Server Error: Failed to remove existing pp.jpg");
+                        return sendError(eventFd, 500, "Internal Server Error: Failed to remove existing default.png");
                 }
 
                 std::ofstream ofs(upload_path.c_str(), std::ios::binary);
@@ -117,11 +117,11 @@ void Server::handlePostRequest(int eventFd, std::string &request)
                 {
                     ofs.write(content.c_str(), static_cast<long>(content.size()));
                     ofs.close();
-                    saved_files.push_back("pp.jpg");
+                    saved_files.push_back("default.png");
                 }
                 else
                 {
-                    return sendError(eventFd, 500, "Internal Server Error: Failed to save pp.jpg");
+                    return sendError(eventFd, 500, "Internal Server Error: Failed to save default.png");
                 }
             }
             else
