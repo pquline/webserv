@@ -62,7 +62,7 @@ std::vector<std::string> ft_split(const std::string &str, char delimiter);
 
 class Server;
 
-void check_conf_pathname(const std::string &pathname);
-void parse_conf_file(const std::string &file, std::vector<Server *> &servers);
+void checkConfPathname(const std::string &pathname);
+void parseConfigurationFile(const std::string &file, std::vector<Server *> &servers);
 std::string url_decode(const std::string &str);
 std::map<std::string, std::string> parse_url_encoded(const std::string &body);

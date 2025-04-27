@@ -20,8 +20,8 @@ int	main(int argc, char **argv)
 		conf = argv[1];
 	try
 	{
-		check_conf_pathname(conf);
-		parse_conf_file(conf, servers);
+		checkConfPathname(conf);
+		parseConfigurationFile(conf, servers);
 		delete_servers(servers);
 		return (EXIT_SUCCESS);
 	}
