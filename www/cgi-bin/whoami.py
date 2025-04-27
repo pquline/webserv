@@ -12,7 +12,7 @@ try:
             elif line.startswith("school:"):
                 school = line.split(":", 1)[1].strip()
 except FileNotFoundError:
-    firstname = lastname = school = "test"
+    firstname = lastname = school = "Unknown"
 
 print(f"""<!DOCTYPE html>
 <html lang="en">
@@ -24,7 +24,7 @@ print(f"""<!DOCTYPE html>
     <script>
         function deleteUserInfo() {{
             if (confirm('Are you sure you want to delete all your information? This action cannot be undone.')) {{
-                fetch('/delete_user_info', {{
+                fetch('/cgi-bin/delete_user_info.py', {{
                     method: 'POST',
                     headers: {{
                         'Content-Type': 'application/json'
@@ -65,7 +65,7 @@ print(f"""<!DOCTYPE html>
 		</div>
         <div class="button-container">
             <a class="button" href="/index.html">Back to Home</a>
-            <a class="button" onclick="deleteUserInfo()">Delete My Information</a>
+            <button onclick="deleteUserInfo()" class="button">Delete My Information</button>
         </div>
     </div>
 </body>

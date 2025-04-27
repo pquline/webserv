@@ -1,4 +1,4 @@
-firstname: Charlotte
-lastname: Xu
-photo:
+firstname: Pauline
+lastname: Fischof
+photo: 
 school: 42
