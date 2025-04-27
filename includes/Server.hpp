@@ -1,5 +1,4 @@
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#pragma once
 
 # include <iostream>
 # include <vector>
@@ -18,7 +17,7 @@
 # include <sstream>
 # include "webserv.hpp"
 # include "HTTPRequest.hpp"
-# include "response.hpp"
+# include "Response.hpp"
 # include "Location.hpp"
 
 # define MAX_EVENT 10
@@ -66,7 +65,6 @@ class Server
 		void	init();
 		void	run();
 };
-#endif
 
 std::string url_decode(const std::string& str);
 std::map<std::string, std::string> parse_url_encoded(const std::string& body);
