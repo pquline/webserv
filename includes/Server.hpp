@@ -25,6 +25,7 @@ class Server
 		std::vector<unsigned int>			_ports;
 		std::map<unsigned int, std::string>	_error_pages;
 		std::map<std::string, Location *>	_locations;
+		std::map<std::string, std::string>	_cookies;
 
 		void	handleError(const std::string& msg);
 		void	setNonBlocking(int fd);

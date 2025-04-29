@@ -15,6 +15,14 @@ static void saveMapToFile(const std::map<std::string, std::string> &data, const 
 	file.close();
 }
 
+static std::string getCookie(const std::string& request)
+{
+	size_t cookiePos = request.find("Cookie");
+	size_t cookieEnd = request.find("\r\n", cookiePos);
+	std::string cookie = request.substr(cookiePos + 18, cookieEnd - cookiePos - 18);
+	return cookie;
+}
+
 void Server::handlePostRequest(int eventFd, std::string &request)
 {
 	HTTPRequest http_request;
@@ -65,10 +73,10 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 		std::string test = form_data["data"];
 
 		std::string response = "HTTP/1.1 200 OK\r\n"
-							   "Content-Type:  text/plain\r\n"
-							   "\r\n"
-							   "Received data:" +
-							   test;
+			"Content-Type:  text/plain\r\n"
+			"\r\n"
+			"Received data:" +
+			test;
 		send(eventFd, response.c_str(), response.size(), 0);
 	}
 	else if (content_type.find("multipart/form-data") != std::string::npos)
@@ -145,12 +153,13 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 				form_data[name] = content;
 			}
 		}
-
-		saveMapToFile(form_data, "www/usrInfo.txt", eventFd);
+		std::string cookie = getCookie(request);
+		std::string cookiePath = "www/" + cookie + ".txt";
+		saveMapToFile(form_data, cookiePath, eventFd);
 		std::string response = "HTTP/1.1 200 OK\r\n"
-							   "Content-Type: text/plain\r\n"
-							   "\r\n"
-							   "Received data:\n";
+			"Content-Type: text/plain\r\n"
+			"\r\n"
+			"Received data:\n";
 
 		for (std::map<std::string, std::string>::iterator it = form_data.begin(); it != form_data.end(); ++it)
 			response += "- " + it->first + ": " + it->second + "\n";
@@ -303,13 +312,34 @@ void Server::callCGI(int eventFd, std::string &request)
 					"Content-Type: text/html\r\n"
 					"Content-Length: " +
 					stream.str() + "\r\n"
-								   "\r\n" +
+					"\r\n" +
 					output;
 				send(eventFd, response.c_str(), response.length(), 0);
 			}
 		}
 		else sendError(eventFd, 500, "CGI Output Error");
 	}
+}
+static std::string generateSessionId()
+{
+	static const char alphanum[] =
+		"0123456789"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz";
+
+	static bool seeded = false;
+	if (!seeded) {
+		srand(static_cast<unsigned int>(time(NULL)));
+		seeded = true;
+	}
+
+	std::string id;
+	id.reserve(32);
+	for (int i = 0; i < 32; ++i) {
+		id += alphanum[static_cast<unsigned long>(rand()) % (sizeof(alphanum) - 1)];
+	}
+
+	return id;
 }
 
 void Server::handleGetRequest(int eventFd, std::string &request)
@@ -372,13 +402,38 @@ void Server::handleGetRequest(int eventFd, std::string &request)
 		sizeStream << content.size();
 		std::string sizeStr = sizeStream.str();
 
+		size_t cookiePos = request.find("Cookie");
+		std::string sessionID = "";
+		std::string setCookie = "";
+		if (cookiePos != std::string::npos)
+		{
+			sessionID = getCookie(request);
+			std::cout << GREEN << "Welcome back my heroine!" << RESET << std::endl;
+			std::cout << "SessionID: " << sessionID << std::endl;
+			std::cout << "Cookie content: " << _cookies[sessionID] << std::endl;
+		}
+		else
+		{
+			sessionID = generateSessionId();
+			setCookie = "Set-Cookie: SESSIONID=" + sessionID + "; Path=/; Max-Age=3600\r\n";
+			_cookies[sessionID] = "firstname: Unknown\nlastname: Unknown\nphoto: \nschool: Unknown\n";
+			std::string cookiePath = "www/" + sessionID + ".txt";
+			std::ofstream cookieFile(cookiePath.c_str());
+			if (!cookieFile) {
+				std::cerr << RED << "Failed to create cookie file: " << cookiePath << RESET << std::endl;
+			}
+			cookieFile << _cookies[sessionID];
+			cookieFile.close();
+
+			std::cout << GREEN << "New Cookie generated!" << RESET << std::endl;
+		}
 		std::string response = "HTTP/1.1 200 OK\r\n"
-							   "Content-Type: " +
-							   content_type + "\r\n"
-											  "Content-Length: " +
-							   sizeStr + "\r\n"
-										 "\r\n" +
-							   content;
+			"Content-Type: " +
+			content_type + "\r\n"
+			"Content-Length: " +
+			sizeStr + "\r\n" + setCookie + 
+			"\r\n" +
+			content;
 		send(eventFd, response.c_str(), response.size(), 0);
 	}
 }
@@ -407,8 +462,8 @@ void Server::handleDeleteRequest(int eventFd, std::string &request)
 	if (remove(file_path.c_str()) != 0)
 		return sendError(eventFd, 500, "Internal Server Error");
 	std::string response = "HTTP/1.1 204 No Content\r\n"
-						  "Content-Length: 0\r\n"
-						  "\r\n";
+		"Content-Length: 0\r\n"
+		"\r\n";
 	send(eventFd, response.c_str(), response.size(), 0);
 }
 

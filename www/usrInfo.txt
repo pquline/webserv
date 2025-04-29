@@ -1,4 +1,4 @@
-firstname: Charlotte
+firstname: Chacha
 lastname: Roy
 photo: 
-school: 101010
+school: 42
