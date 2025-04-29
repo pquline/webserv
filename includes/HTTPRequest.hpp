@@ -11,7 +11,6 @@ class HTTPRequest
 		std::string _contentType;
 		size_t _contentLength;
 		std::map<std::string, std::string> _headers;
-		std::vector<Cookie> _cookies;
 
 	public:
 		HTTPRequest();
@@ -22,15 +21,7 @@ class HTTPRequest
 		bool getHasBody() const { return (_hasBody); };
 		size_t getContentLength() const { return (_contentLength); };
 		std::map<std::string, std::string> getHeaders() const { return (_headers); };
-		Cookie getCookie(const std::string& name) const {
-			for (std::vector<Cookie>::const_iterator it = _cookies.begin(); it != _cookies.end(); ++it) {
-				if (it->getName() == name) {
-					return *it;
-				}
-			}
-			return Cookie();
-		}
-
+		
 		void setContentType(const std::string &type) { _contentType = type; };
 		void setMethod(const std::string &m) { _method = m; };
 		void setURI(const std::string &u) { _uri = u; };
@@ -39,5 +30,5 @@ class HTTPRequest
 		void setContentLength(size_t length) { _contentLength = length; };
 
 		void setHeaders(const std::map<std::string, std::string>& headers);
-		void parseCookies(const std::string& cookieHeader);
+		std::map<std::string, std::string> parseHeaders(std::string &request);
 };

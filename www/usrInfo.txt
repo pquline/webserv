@@ -1,4 +1,4 @@
-firstname: Chacha
-lastname: XU
+firstname: Charlotte
+lastname: Roy
 photo: 
-school: lalala 42
+school: 101010
