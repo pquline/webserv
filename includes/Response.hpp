@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iostream>
+#include "webserv.hpp"
 
 class Response
 {

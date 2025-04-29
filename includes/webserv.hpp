@@ -1,19 +1,29 @@
 #pragma once
 
+#include <algorithm>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <cerrno>
 #include <csignal>
 #include <climits>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <iomanip>
+#include <fcntl.h>
 #include <fstream>
-#include <exception>
-#include <algorithm>
+#include <iostream>
+#include <netinet/in.h>
 #include <vector>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/select.h>
+#include <sys/wait.h>
+#include <sys/epoll.h>
+#include <unistd.h>
+#include <sstream>
+#include <exception>
 #include <list>
 #include <set>
-#include <sys/epoll.h>
 #include <map>
 #include "Server.hpp"
 #include "Location.hpp"
@@ -36,15 +46,11 @@
 #define ERROR_PREFIX "[Error]: "
 #define ERROR_USAGE "Usage: ./webserv [file.conf]"
 #define ERROR_OPEN "Cannot open "
-
 #define DEFAULT_CONF "webserv.conf"
 #define CONF_EXTENSION ".conf"
 #define SIZE_EXTENSION 5
-
 #define ROOT_PATH "index.html"
 #define GOOD_HTTP_VERSION "HTTP/1.1"
-
-std::vector<std::string> ft_split(const std::string &str, char delimiter);
 
 #define PARSING_UNEXPECTED "Found unexpected data while parsing configuration file"
 #define PARSING_UNMATCHED_BRACKET "Found unmatched bracket(s) while parsing configuration file"
@@ -57,7 +63,6 @@ std::vector<std::string> ft_split(const std::string &str, char delimiter);
 
 #define SIZE_SERVER 6
 #define SIZE_LOCATION 8
-
 #define UNSET -1
 #define DEFAULT_MAX_BODY_SIZE 1000000
 
@@ -67,3 +72,4 @@ void checkConfPathname(const std::string &pathname);
 void parseConfigurationFile(const std::string &file, std::vector<Server *> &servers);
 std::string url_decode(const std::string &str);
 std::map<std::string, std::string> parse_url_encoded(const std::string &body);
+std::vector<std::string> ft_split(const std::string &str, char delimiter);

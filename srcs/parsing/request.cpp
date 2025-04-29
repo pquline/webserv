@@ -1,8 +1,4 @@
 #include "Server.hpp"
-#include <sys/wait.h> // For waitpid
-#include <sys/select.h> // For select
-#include <sys/time.h>   // For struct timeval
-#include <sys/stat.h>   // For stat
 
 static void saveMapToFile(const std::map<std::string, std::string> &data, const std::string &filepath, int eventFd)
 {
@@ -39,7 +35,6 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 	http_request.setURI(uri);
 	http_request.setHeaders(http_request.parseHeaders(request));
 
-	// Check if this is a CGI file based on extension
 	bool isCGI = false;
 	size_t dot_pos = uri.find_last_of('.');
 	if (dot_pos != std::string::npos) {
@@ -127,7 +122,6 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 			{
 				std::string upload_path = "www/default.png";
 
-				// Overwrite if file already exists
 				if (access(upload_path.c_str(), F_OK) == 0)
 				{
 					if (remove(upload_path.c_str()) != 0)
@@ -173,40 +167,31 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 
 void Server::callCGI(int eventFd, std::string &request)
 {
-	std::string requestTarget = parseRequestTarget(request); // e.g. "/cgi-bin/updateProfile.py"
-	std::string scriptPath = "www" + requestTarget; // Full path to the script
+	std::string requestTarget = parseRequestTarget(request);
+	std::string scriptPath = "www" + requestTarget;
 
-	// Check if the file exists
-	if (access(scriptPath.c_str(), F_OK) != 0) {
+	if (access(scriptPath.c_str(), F_OK) != 0)
 		return sendError(eventFd, 404, "CGI Script Not Found");
-	}
 
-	// Check if the file is executable
-	if (access(scriptPath.c_str(), X_OK) != 0) {
+	if (access(scriptPath.c_str(), X_OK) != 0)
 		return sendError(eventFd, 403, "CGI Script Not Executable");
-	}
 
-	// Determine the interpreter based on file extension
 	std::string interpreter;
 	size_t dot_pos = scriptPath.find_last_of('.');
 	if (dot_pos != std::string::npos) {
 		std::string extension = scriptPath.substr(dot_pos);
-		if (extension == ".py") {
+		if (extension == ".py")
 			interpreter = "/usr/bin/python3";
-		} else if (extension == ".php") {
+		else if (extension == ".php")
 			interpreter = "/usr/bin/php";
-		} else if (extension == ".pl") {
+		else if (extension == ".pl")
 			interpreter = "/usr/bin/perl";
-		} else if (extension == ".sh") {
+		else if (extension == ".sh")
 			interpreter = "/bin/bash";
-		} else {
-			// For other extensions, try to execute directly
+		else
 			interpreter = "";
-		}
-	} else {
-		// No extension, try to execute directly
-		interpreter = "";
 	}
+	else interpreter = "";
 
 	int pipefd[2];
 	if (pipe(pipefd) == -1)
@@ -217,24 +202,20 @@ void Server::callCGI(int eventFd, std::string &request)
 		return sendError(eventFd, 500, "Internal Server Error (fork)");
 
 	if (pid == 0) {
-		// Child process
 		close(pipefd[0]);
 		dup2(pipefd[1], STDOUT_FILENO);
 		close(pipefd[1]);
 
-		// Prepare environment variables
 		std::string contentLength = getHeader(request, "Content-Length");
 		std::string contentType = getHeader(request, "Content-Type");
 		std::string queryString = "";
 
-		// Extract query string if present
 		size_t queryPos = requestTarget.find('?');
 		if (queryPos != std::string::npos) {
 			queryString = requestTarget.substr(queryPos + 1);
 			requestTarget = requestTarget.substr(0, queryPos);
 		}
 
-		// Set up environment variables
 		std::vector<std::string> env_strings;
 		env_strings.push_back("REQUEST_METHOD=" + (request.find("GET") != std::string::npos ? std::string("GET") : std::string("POST")));
 		env_strings.push_back("CONTENT_LENGTH=" + contentLength);
@@ -250,46 +231,38 @@ void Server::callCGI(int eventFd, std::string &request)
 		env_strings.push_back("SERVER_PROTOCOL=HTTP/1.1");
 		env_strings.push_back("SERVER_SOFTWARE=WebServ/1.0");
 
-		// Now build char* array for execve
 		std::vector<char *> envp;
 		for (size_t i = 0; i < env_strings.size(); ++i)
 			envp.push_back(const_cast<char *>(env_strings[i].c_str()));
 		envp.push_back(NULL);
 
-		// Prepare argv for execve
 		std::vector<char *> argv;
-		if (!interpreter.empty()) {
+		if (!interpreter.empty())
 			argv.push_back(const_cast<char *>(interpreter.c_str()));
-		}
+
 		argv.push_back(const_cast<char *>(scriptPath.c_str()));
 		argv.push_back(NULL);
 
-		// Execute the CGI script
-		if (interpreter.empty()) {
-			// Execute directly
+		if (interpreter.empty())
 			execve(scriptPath.c_str(), &argv[0], &envp[0]);
-		} else {
-			// Execute with interpreter
+		else
 			execve(interpreter.c_str(), &argv[0], &envp[0]);
-		}
 
-		// If we get here, execve failed
 		exit(1);
-	} else {
-		// Parent process
+	}
+	else
+	{
 		close(pipefd[1]);
 
-		// Read all output from the CGI script
 		std::string output;
 		char buffer[4096];
 		ssize_t n;
 
-		// Set a timeout for reading
 		fd_set readfds;
 		struct timeval tv;
 		FD_ZERO(&readfds);
 		FD_SET(pipefd[0], &readfds);
-		tv.tv_sec = 5;  // 5 second timeout
+		tv.tv_sec = 5;
 		tv.tv_usec = 0;
 
 		while (true) {
@@ -314,18 +287,15 @@ void Server::callCGI(int eventFd, std::string &request)
 
 		close(pipefd[0]);
 
-		// Wait for the child process to finish
 		int status;
 		waitpid(pid, &status, 0);
 
 		if (!output.empty()) {
-			// Check if the output already contains HTTP headers
 			size_t header_end = output.find("\r\n\r\n");
-			if (header_end != std::string::npos) {
-				// Output already contains HTTP headers, send it as is
+			if (header_end != std::string::npos)
 				send(eventFd, output.c_str(), output.length(), 0);
-			} else {
-				// Output doesn't contain HTTP headers, add them
+			else
+			{
 				std::ostringstream stream;
 				stream << output.length();
 				std::string response =
@@ -337,9 +307,8 @@ void Server::callCGI(int eventFd, std::string &request)
 					output;
 				send(eventFd, response.c_str(), response.length(), 0);
 			}
-		} else {
-			sendError(eventFd, 500, "CGI Output Error");
 		}
+		else sendError(eventFd, 500, "CGI Output Error");
 	}
 }
 
@@ -374,40 +343,29 @@ void Server::handleGetRequest(int eventFd, std::string &request)
 	size_t dot_pos = file_path.find_last_of('.');
 	if (dot_pos != std::string::npos) {
 		std::string extension = file_path.substr(dot_pos);
-		if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi") {
-			isCGI = true;
-		}
+		if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi") isCGI = true;
 	}
 
-	if (isCGI) {
-		callCGI(eventFd, request);
-	} else {
+	if (isCGI) callCGI(eventFd, request);
+	else
+	{
 		std::stringstream buf;
 		buf << file.rdbuf();
 		file.close();
 
 		std::string content = buf.str();
-		std::string content_type = "text/html"; // Default content type
+		std::string content_type = "text/html"; 
 
-		// Determine content type based on file extension
-		if (dot_pos != std::string::npos) {
+		if (dot_pos != std::string::npos)
+		{
 			std::string extension = file_path.substr(dot_pos);
-			if (extension == ".css") {
-				content_type = "text/css";
-			} else if (extension == ".js") {
-				content_type = "application/javascript";
-			} else if (extension == ".png") {
-				content_type = "image/png";
-			} else if (extension == ".jpg" || extension == ".jpeg") {
-				content_type = "image/jpeg";
-			} else if (extension == ".gif") {
-				content_type = "image/gif";
-			} else if (extension == ".ico") {
-				content_type = "image/x-icon";
-			} else if (extension == ".txt") {
-				content_type = "text/plain";
-			}
-			// Add more content types here as needed
+			if (extension == ".css") content_type = "text/css";
+			else if (extension == ".js") content_type = "application/javascript";
+			else if (extension == ".png") content_type = "image/png";
+			else if (extension == ".jpg" || extension == ".jpeg") content_type = "image/jpeg";
+			else if (extension == ".gif") content_type = "image/gif";
+			else if (extension == ".ico") content_type = "image/x-icon";
+			else if (extension == ".txt") content_type = "text/plain";
 		}
 
 		std::ostringstream sizeStream;
@@ -460,20 +418,11 @@ void Server::parseRequest(int eventFd, ssize_t bytesRead, char *buffer)
 
 	std::string first_line = request.substr(0, request.find("\r\n"));
 	if (first_line.find("GET") != std::string::npos)
-	{
-		std::cerr << YELLOW DEBUG_PREFIX << "[GET] request received:" << RESET << std::endl;
 		Server::handleGetRequest(eventFd, request);
-	}
 	else if (first_line.find("POST") != std::string::npos)
-	{
-		std::cerr << YELLOW DEBUG_PREFIX << "[POST] request received:" << RESET << std::endl;
 		Server::handlePostRequest(eventFd, request);
-	}
 	else if (first_line.find("DELETE") != std::string::npos)
-	{
-		std::cerr << YELLOW DEBUG_PREFIX << "[DELETE] request received:" << RESET << std::endl;
 		Server::handleDeleteRequest(eventFd, request);
-	}
 	else
 		sendError(eventFd, 400, "Bad Request");
 	std::cerr << GRAY << buffer << RESET << std::endl;

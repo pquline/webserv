@@ -1,21 +1,5 @@
 #pragma once
 
-# include <iostream>
-# include <vector>
-# include <cstdlib>
-# include <string>
-# include <cstdio>
-# include <cstring>
-# include <fcntl.h>
-# include <fstream>
-# include <sys/stat.h>
-# include <sys/types.h>
-# include <sys/socket.h>
-# include <sys/select.h>
-# include <sys/wait.h>
-# include <netinet/in.h>
-# include <unistd.h>
-# include <sstream>
 # include "webserv.hpp"
 # include "HTTPRequest.hpp"
 # include "Response.hpp"

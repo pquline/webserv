@@ -1,6 +1,4 @@
 #pragma once
-#ifndef LOCATION_HPP
-#define LOCATION_HPP
 
 #include "webserv.hpp"
 
@@ -15,12 +13,9 @@ class	Location
 
 	public:
 
-		Location(int autoindex, std::string root, \
-				std::map<unsigned int, std::string> error_pages, \
-				std::vector<std::string> indexes);
+		Location(int autoindex, std::string root, std::map<unsigned int, std::string> error_pages, std::vector<std::string> indexes);
 		~Location(void);
 
 		int	get_autoindex(void) const;
 
 };
-#endif
