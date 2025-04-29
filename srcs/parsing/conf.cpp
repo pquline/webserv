@@ -349,7 +349,6 @@ Server *getServer(std::string data)
 	std::map<unsigned int, std::string> error_pages;
 	std::map<std::string, Location *> locations;
 
-	// std::cerr << YELLOW << "[DEBUG]: SERVER" << RESET << std::endl;
 	for (size_t index = 0; data[index]; (void)0)
 	{
 		while (index < data.size() && (isspace(data[index]) || data[index] == '}'))

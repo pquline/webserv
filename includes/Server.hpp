@@ -4,6 +4,8 @@
 # include "HTTPRequest.hpp"
 # include "Response.hpp"
 # include "Location.hpp"
+# include "Session.hpp"
+# include "UserData.hpp"
 
 # define MAX_EVENT 10
 # define BUFFER_SIZE 1024

@@ -2,7 +2,7 @@
 
 HTTPRequest::HTTPRequest() {};
 
-void HTTPRequest::setHeaders(const std::map<std::string, std::string> headers)
+void HTTPRequest::setHeaders(const std::map<std::string, std::string>& headers)
 {
 	_headers = headers;
 
@@ -73,13 +73,5 @@ std::map<std::string, std::string> HTTPRequest::parseHeaders(std::string &reques
 
 		headers[key] = value;
 	}
-	// // Boucle pour test
-	// for (std::map<std::string, std::string>::const_iterator it = headers.begin();
-	//      it != headers.end(); ++it)
-	// {
-	//     std::cout << YELLOW << "[" << it->first << "]" << CYAN << " " << it->second << RESET << std::endl;
-	// }
-	// std::cerr << std::endl;
-
 	return headers;
 }

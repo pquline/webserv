@@ -7,13 +7,7 @@ static void handle_sigint(int signal)
 	if (signal == SIGINT) g_sig = 1;
 }
 
-Server::Server(int autoindex, ssize_t max_body_size, std::string root, \
-	std::vector<std::string> hosts, std::vector<unsigned int> ports, \
-	std::map<unsigned int, std::string> error_pages, \
-	std::map<std::string, Location *> locations): \
-	_autoindex(autoindex), _max_body_size(max_body_size), _root(root), \
-	_hosts(hosts), _ports(ports), _error_pages(error_pages), \
-	_locations(locations)
+Server::Server(int autoindex, ssize_t max_body_size, std::string root, std::vector<std::string> hosts, std::vector<unsigned int> ports, std::map<unsigned int, std::string> error_pages, std::map<std::string, Location *> locations): _autoindex(autoindex), _max_body_size(max_body_size), _root(root), _hosts(hosts), _ports(ports), _error_pages(error_pages), _locations(locations)
 {
 	if (_max_body_size == UNSET)
 		throw std::invalid_argument(PARSING_UNEXPECTED);
@@ -72,15 +66,16 @@ void Server::run()
 	int nfds, connFd;
 	while (true)
 	{
-		if (g_sig)
-		{
-			std::cout << GREEN << "\nSIGINT received, servers shutting down..." << RESET << std::endl;
-			// server shutdown
-			break;
-		}
 		nfds = epoll_wait(epollFd, events, MAX_EVENT, 1000);
 		if (nfds < 0)
-			handleError("epoll_wait");
+		{
+			if (g_sig)
+			{
+				std::cout << GREEN << "\nSIGINT received, servers shutting down..." << RESET << std::endl;
+				break;
+			}
+			else handleError("epoll_wait");
+		}
 
 		for (int i = 0; i < nfds; i++)
 		{
@@ -124,23 +119,23 @@ static std::string generateErrorPage(int code, const std::string &message)
 {
 	std::ostringstream page;
 	page << "<!DOCTYPE html>\n"
-		 << "<html lang=\"en\">\n"
-		 << "<head>\n"
-		 << "    <meta charset=\"UTF-8\">\n"
-		 << "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
-		 << "    <title>Error " << code << "</title>\n"
-		 << "    <link rel=\"stylesheet\" href=\"styles.css\">\n"
-		 << "</head>\n"
-		 << "<body>\n"
-		 << "    <div class=\"container\">\n"
-		 << "        <h1>" << code << "</h1>\n"
-		 << "        <p class=\"error-message\">" << message << "</p>\n"
-		 << "        <div class=\"button-container-2\">\n"
-		 << "            <a class=\"button\" href=\"/index.html\">Back to Home</a>\n"
-		 << "        </div>\n"
-		 << "    </div>\n"
-		 << "</body>\n"
-		 << "</html>\n";
+		<< "<html lang=\"en\">\n"
+		<< "<head>\n"
+		<< "    <meta charset=\"UTF-8\">\n"
+		<< "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+		<< "    <title>Error " << code << "</title>\n"
+		<< "    <link rel=\"stylesheet\" href=\"styles.css\">\n"
+		<< "</head>\n"
+		<< "<body>\n"
+		<< "    <div class=\"container\">\n"
+		<< "        <h1>" << code << "</h1>\n"
+		<< "        <p class=\"error-message\">" << message << "</p>\n"
+		<< "        <div class=\"button-container-2\">\n"
+		<< "            <a class=\"button\" href=\"/index.html\">Back to Home</a>\n"
+		<< "        </div>\n"
+		<< "    </div>\n"
+		<< "</body>\n"
+		<< "</html>\n";
 
 	return page.str();
 }
@@ -152,10 +147,10 @@ void Server::sendError(int fd, int code, const std::string &message)
 
 	std::cerr << BLUE ERROR_PREFIX << code << " " << message << RESET << std::endl;
 	response << "HTTP/1.1 " << code << " " << message << "\r\n"
-			 << "Content-Type: text/html\r\n"
-			 << "Content-Length: " << body.size() << "\r\n"
-			 << "\r\n"
-			 << body;
+		<< "Content-Type: text/html\r\n"
+		<< "Content-Length: " << body.size() << "\r\n"
+		<< "\r\n"
+		<< body;
 	send(fd, response.str().c_str(), response.str().size(), 0);
 }
 
@@ -184,16 +179,16 @@ int	Server::get_autoindex(void) const
 }
 
 std::string	Server::parseRequestTarget(const std::string& request) {
-    std::istringstream stream(request);
-    std::string method, path;
-    stream >> method >> path;
-    return path;
+	std::istringstream stream(request);
+	std::string method, path;
+	stream >> method >> path;
+	return path;
 }
 
 std::string	Server::getHeader(const std::string& request, const std::string& key) {
-    size_t pos = request.find(key + ": ");
-    if (pos == std::string::npos) return "";
-    size_t start = pos + key.length() + 2;
-    size_t end = request.find("\r\n", start);
-    return request.substr(start, end - start);
+	size_t pos = request.find(key + ": ");
+	if (pos == std::string::npos) return "";
+	size_t start = pos + key.length() + 2;
+	size_t end = request.find("\r\n", start);
+	return request.substr(start, end - start);
 }
