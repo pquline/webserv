@@ -1,6 +1,6 @@
 #include "webserv.hpp"
 
-static void	delete_servers(std::vector<Server *> &servers)
+static void	deleteServers(std::vector<Server *> &servers)
 {
 	for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); it++)
 		delete(*it);
@@ -20,25 +20,16 @@ int	main(int argc, char **argv)
 		conf = argv[1];
 	try
 	{
-		check_conf_pathname(conf);
-		parse_conf_file(conf, servers);
-		delete_servers(servers);
+		checkConfPathname(conf);
+		parseConfigurationFile(conf, servers);
+		deleteServers(servers);
 		return (EXIT_SUCCESS);
 	}
 	catch (const std::exception &e)
 	{
 		std::cerr << RED << ERROR_PREFIX << e.what() << RESET << std::endl;
 		if (!servers.empty())
-			delete_servers(servers);
+			deleteServers(servers);
 		return (EXIT_FAILURE);
 	}
 }
-/*
-int main(int argc, char** argv)
-{
-	int port = std::atoi(argv[1]);
-	Server server((uint16_t)port);
-	server.init();
-	server.run();
-	return 0;
-}*/

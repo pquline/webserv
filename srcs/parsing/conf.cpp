@@ -1,15 +1,15 @@
 #include "Server.hpp"
 
-void	check_conf_pathname(const std::string& pathname)
+void checkConfPathname(const std::string &pathname)
 {
 	size_t n = pathname.size();
 	if (n < 5 || pathname.substr(n - 5) != CONF_EXTENSION)
 		throw std::invalid_argument(ERROR_USAGE);
 }
 
-static std::string	get_conf_content(const std::string& file)
+static std::string getConfContent(const std::string &file)
 {
-	std::ifstream	conf(file.c_str());
+	std::ifstream conf(file.c_str());
 	std::stringstream buffer;
 
 	if (conf.is_open() == false)
@@ -17,14 +17,14 @@ static std::string	get_conf_content(const std::string& file)
 
 	buffer << conf.rdbuf();
 	conf.close();
-	return(buffer.str());
+	return (buffer.str());
 }
 
-static std::string	get_location_block(const std::string &block, size_t &index)
+static std::string getLocationBlock(const std::string &block, size_t &index)
 {
-	size_t		begin;
-	size_t		curly_brackets;
-	std::string	location_block;
+	size_t begin;
+	size_t curly_brackets;
+	std::string location_block;
 
 	index += SIZE_LOCATION;
 	while (isspace(block[index]))
@@ -51,11 +51,11 @@ static std::string	get_location_block(const std::string &block, size_t &index)
 	return (location_block);
 }
 
-static std::string	get_server_block(const std::string &block, size_t &index)
+static std::string getServerBlock(const std::string &block, size_t &index)
 {
-	size_t		begin;
-	size_t		curly_brackets;
-	std::string	server_block;
+	size_t begin;
+	size_t curly_brackets;
+	std::string server_block;
 
 	index += SIZE_SERVER;
 	while (isspace(block[index]))
@@ -78,10 +78,10 @@ static std::string	get_server_block(const std::string &block, size_t &index)
 	return (server_block);
 }
 
-static std::string	get_directive(const std::string &data, size_t &index)
+static std::string getDirective(const std::string &data, size_t &index)
 {
-	size_t		begin = index;
-	std::string	directive;
+	size_t begin = index;
+	std::string directive;
 
 	while (index < data.size() && data[index] != ';')
 		index++;
@@ -91,9 +91,9 @@ static std::string	get_directive(const std::string &data, size_t &index)
 	return (directive);
 }
 
-static void	parse_autoindex(const std::string& directive, int &autoindex)
+static void parseAutoindex(const std::string &directive, int &autoindex)
 {
-	size_t	index = std::string("autoindex").size();
+	size_t index = std::string("autoindex").size();
 
 	while (index < directive.size() && isspace(directive[index]))
 		index++;
@@ -113,7 +113,7 @@ static void	parse_autoindex(const std::string& directive, int &autoindex)
 		index++;
 	if (index < directive.size() && directive[index] != ';')
 		throw std::invalid_argument(PARSING_AUTOINDEX);
-	std::cerr << "[DEBUG]: " << "autoindex: [";
+	std::cerr << DEBUG_PREFIX << "autoindex: [";
 	if (autoindex == 1)
 		std::cerr << "on";
 	else
@@ -121,10 +121,10 @@ static void	parse_autoindex(const std::string& directive, int &autoindex)
 	std::cerr << "]" << std::endl;
 }
 
-static void	parse_max_body_size(const std::string& directive, ssize_t &max_body_size)
+static void parseMaxBodySize(const std::string &directive, ssize_t &max_body_size)
 {
-	size_t	index = std::string("client_max_body_size").size();
-	size_t	begin;
+	size_t index = std::string("client_max_body_size").size();
+	size_t begin;
 
 	while (index < directive.size() && isspace(directive[index]))
 		index++;
@@ -134,33 +134,33 @@ static void	parse_max_body_size(const std::string& directive, ssize_t &max_body_
 	if (begin == index || index - begin > 9)
 		throw std::invalid_argument(PARSING_BODY_SIZE);
 	max_body_size = strtol((directive.substr(begin, index - begin)).c_str(), nullptr, 10);
-	std::cerr << "[DEBUG]: " << "client_max_body_size: [" << max_body_size << "]" << std::endl;
+	std::cerr << DEBUG_PREFIX << "client_max_body_size: [" << max_body_size << "]" << std::endl;
 }
 
-static void	parse_root(const std::string& directive, std::string &root)
+static void parseRoot(const std::string &directive, std::string &root)
 {
-	size_t	begin;
-	size_t	index = std::string("root").size();
+	size_t begin;
+	size_t index = std::string("root").size();
 
 	while (isspace(directive[index]))
 		index++;
 	begin = index;
-	while (index < directive.size() && !isspace(directive[index]) && \
-			directive[index] != ';')
+	while (index < directive.size() && !isspace(directive[index]) &&
+		   directive[index] != ';')
 		index++;
 	root = directive.substr(begin, index - begin);
-	std::cerr << "[DEBUG]: " << "root: [" << root << "]" << std::endl;
+	std::cerr << DEBUG_PREFIX << "root: [" << root << "]" << std::endl;
 }
 
-static void	parse_host(const std::string& directive, std::vector<std::string> &hosts)
+static void parseHost(const std::string &directive, std::vector<std::string> &hosts)
 {
-	size_t	index = std::string("server_name").size();
+	size_t index = std::string("server_name").size();
 
 	while (isspace(directive[index]))
 		index++;
 	while (index < directive.size())
 	{
-		size_t	end = index;
+		size_t end = index;
 		while (end < directive.size() && !isspace(directive[end]))
 			end++;
 		hosts.push_back(directive.substr(index, end - index));
@@ -169,7 +169,7 @@ static void	parse_host(const std::string& directive, std::vector<std::string> &h
 		while (isspace(directive[index]))
 			index++;
 	}
-	std::cerr << "[DEBUG]: " << "server_name: [";
+	std::cerr << DEBUG_PREFIX << "server_name: [";
 	for (std::vector<std::string>::const_iterator it = hosts.begin(); it != hosts.end(); it++)
 	{
 		std::vector<std::string>::const_iterator temp = ++it;
@@ -181,16 +181,16 @@ static void	parse_host(const std::string& directive, std::vector<std::string> &h
 	std::cerr << "]" << std::endl;
 }
 
-static void	parse_port(const std::string& directive, std::vector<unsigned int> &ports)
+static void parsePort(const std::string &directive, std::vector<unsigned int> &ports)
 {
-	size_t			index = std::string("listen").size();
-	unsigned int	port;
+	size_t index = std::string("listen").size();
+	unsigned int port;
 
 	while (isspace(directive[index]))
 		index++;
 	while (index < directive.size())
 	{
-		size_t	end = index;
+		size_t end = index;
 		while (end < directive.size() && !isspace(directive[end]))
 			end++;
 		port = static_cast<unsigned int>(strtol((directive.substr(index, end - index)).c_str(), nullptr, 10));
@@ -204,7 +204,7 @@ static void	parse_port(const std::string& directive, std::vector<unsigned int> &
 		if (isalpha(directive[index]))
 			throw std::invalid_argument(PARSING_PORTS);
 	}
-	std::cerr << "[DEBUG]: " << "ports: [";
+	std::cerr << DEBUG_PREFIX << "ports: [";
 	for (std::vector<unsigned int>::const_iterator it = ports.begin(); it != ports.end(); it++)
 	{
 		std::vector<unsigned int>::const_iterator temp = ++it;
@@ -216,13 +216,13 @@ static void	parse_port(const std::string& directive, std::vector<unsigned int> &
 	std::cerr << "]" << std::endl;
 }
 
-static void	parse_error_page(const std::string& directive, \
-		std::map<unsigned int, std::string> &error_pages)
+static void parseErrorPage(const std::string &directive,
+						   std::map<unsigned int, std::string> &error_pages)
 {
-	size_t			index = std::string("error_page").size();
-	size_t			begin;
-	unsigned int	error_code;
-	std::string		path;
+	size_t index = std::string("error_page").size();
+	size_t begin;
+	unsigned int error_code;
+	std::string path;
 
 	while (isspace(directive[index]))
 		index++;
@@ -237,14 +237,13 @@ static void	parse_error_page(const std::string& directive, \
 	while (isspace(directive[index]))
 		index++;
 	begin = index;
-	while (isalpha(directive[index]) || ispunct(directive[index]) \
-			|| isdigit(directive[index]) || directive[index] == '/')
+	while (isalpha(directive[index]) || ispunct(directive[index]) || isdigit(directive[index]) || directive[index] == '/')
 		index++;
 	if (begin == index)
 		throw std::invalid_argument(PARSING_ERROR_PAGE);
 	path = directive.substr(begin, index - begin);
 	error_pages[error_code] = path;
-	std::cerr << "[DEBUG]: " << "error_pages: [";
+	std::cerr << DEBUG_PREFIX << "error_pages: [";
 	for (std::map<unsigned int, std::string>::const_iterator it = error_pages.begin(); it != error_pages.end(); it++)
 	{
 		std::map<unsigned int, std::string>::const_iterator temp = ++it;
@@ -256,11 +255,10 @@ static void	parse_error_page(const std::string& directive, \
 	std::cerr << "]" << std::endl;
 }
 
-static void	parse_indexes(const std::string& directive, std::vector<std::string> &indexes)
+static void parseIndexes(const std::string &directive, std::vector<std::string> &indexes)
 {
-	(void)indexes;
-	size_t	index = std::string("index").size();
-	size_t	begin;
+	size_t index = std::string("index").size();
+	size_t begin;
 
 	while (isspace(directive[index]))
 		index++;
@@ -273,7 +271,7 @@ static void	parse_indexes(const std::string& directive, std::vector<std::string>
 		while (isspace(directive[index]))
 			index++;
 	}
-	std::cerr << "[DEBUG]: " << "indexes: [";
+	std::cerr << DEBUG_PREFIX << "indexes: [";
 	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++)
 	{
 		std::vector<std::string>::const_iterator temp = ++it;
@@ -285,10 +283,10 @@ static void	parse_indexes(const std::string& directive, std::vector<std::string>
 	std::cerr << "]" << std::endl;
 }
 
-static std::string	get_directive_key(const std::string& directive, size_t index)
+static std::string getDirectiveKey(const std::string &directive, size_t index)
 {
-	const size_t	begin = index;
-	std::string		key;
+	const size_t begin = index;
+	std::string key;
 
 	while (index < directive.size() && !isspace(directive[index]))
 		index++;
@@ -298,17 +296,17 @@ static std::string	get_directive_key(const std::string& directive, size_t index)
 	return (key);
 }
 
-static void	parse_location(const std::string& directive, \
-		std::map<std::string, Location *> &locations)
+static void parseLocation(const std::string &directive,
+						  std::map<std::string, Location *> &locations)
 {
-	std::string							key;
+	std::string key;
 
-	int									autoindex = UNSET;
-	std::string							uri;
-	std::string							root = "";
-	std::map<unsigned int, std::string>	error_pages;
-	std::vector<std::string>			indexes;
-	size_t								index = 0;
+	int autoindex = UNSET;
+	std::string uri;
+	std::string root = "";
+	std::map<unsigned int, std::string> error_pages;
+	std::vector<std::string> indexes;
+	size_t index = 0;
 
 	while (!isspace(directive[index]) && directive[index] != '{')
 		index++;
@@ -316,88 +314,119 @@ static void	parse_location(const std::string& directive, \
 	while (isspace(directive[index]))
 		index++;
 	index += sizeof('{');
-	//std::cerr << COLOR_BLUE "[DEBUG]: LOCATION " << uri << COLOR_NONE << std::endl;
+	// std::cerr << COLOR_BLUE "[DEBUG]: LOCATION " << uri << COLOR_NONE << std::endl;
 	while (index < directive.size() && directive[index] != '}')
 	{
 		while (index < directive.size() && (isspace(directive[index]) || directive[index] == '}'))
 			index++;
 		if (index >= directive.size())
 			break;
-		key = get_directive_key(directive, index);
+		key = getDirectiveKey(directive, index);
 		if (key == "autoindex")
-			parse_autoindex(get_directive(directive, index), autoindex);
+			parseAutoindex(getDirective(directive, index), autoindex);
 		else if (key == "index")
-			parse_indexes(get_directive(directive, index), indexes);
+			parseIndexes(getDirective(directive, index), indexes);
 		else if (key == "root")
-			parse_root(get_directive(directive, index), root);
+			parseRoot(getDirective(directive, index), root);
 		else if (key == "error_page")
-			parse_error_page(get_directive(directive, index), error_pages);
+			parseErrorPage(getDirective(directive, index), error_pages);
 		else
 			throw std::invalid_argument(PARSING_UNEXPECTED);
 		index++;
 	}
 	locations[uri] = new Location(autoindex, root, error_pages, indexes);
 }
-
-Server	*get_server(std::string data)
+static void parseRedirection(const std::string &directive, std::map<std::string, std::string> &redirections)
 {
-	std::string							key;
+    size_t index = std::string("redirection").size();
+    size_t begin;
+    std::string from;
+    std::string to;
 
-	int									autoindex = true;
-	ssize_t								max_body_size = DEFAULT_MAX_BODY_SIZE;
-	std::string							root = "";
-	std::vector<std::string>			hosts;
-	std::vector<unsigned int>			ports;
-	std::map<unsigned int, std::string>	error_pages;
-	std::map<std::string, Location *>	locations;
+    while (isspace(directive[index]))
+        index++;
+    
+    // Parse "from" path
+    begin = index;
+    while (index < directive.size() && !isspace(directive[index]))
+        index++;
+    from = directive.substr(begin, index - begin);
 
-	//std::cerr << YELLOW << "[DEBUG]: SERVER" << RESET << std::endl;
-	for (size_t index = 0; data[index]; (void)0)
-	{
-		while (index < data.size() && (isspace(data[index]) || data[index] == '}'))
-			index++;
-		if (index >= data.size())
-			break;
-		try
-		{
-			key = get_directive_key(data, index);
-			if (key == "autoindex")
-				parse_autoindex(get_directive(data, index), autoindex);
-			else if (key == "client_max_body_size")
-				parse_max_body_size(get_directive(data, index), max_body_size);
-			else if (key == "root")
-				parse_root(get_directive(data, index), root);
-			else if (key == "server_name")
-				parse_host(get_directive(data, index), hosts);
-			else if (key == "listen")
-				parse_port(get_directive(data, index), ports);
-			else if (key == "error_page")
-				parse_error_page(get_directive(data, index), error_pages);
-			else if (key == "location")
-				parse_location(get_location_block(data, index), locations);
-			else
-				throw std::invalid_argument(PARSING_UNEXPECTED);
-			if (index < data.size())
-				index++;
-		}
-		catch(const std::exception& e)
-		{
-			if (!locations.empty())
-			{
-				for (std::map<std::string, Location *>::iterator it = locations.begin(); \
-						it != locations.end(); it++)
-					delete(it->second);
-			}
-			throw std::invalid_argument(PARSING_UNEXPECTED);
-		}
-	}
-	return (new Server(autoindex, max_body_size, root, hosts, ports, \
-				error_pages, locations));
+    while (isspace(directive[index]))
+        index++;
+    
+    // Parse "to" path
+    begin = index;
+    while (index < directive.size() && !isspace(directive[index]) && directive[index] != ';')
+        index++;
+    to = directive.substr(begin, index - begin);
+
+    redirections[from] = to;
+    
+    std::cerr << DEBUG_PREFIX << "redirection: [" << from << " -> " << to << "]" << std::endl;
 }
 
-static bool	curly_brackets_are_matched(const std::string& content)
+Server *getServer(std::string data)
 {
-	size_t	curly_brackets;
+    std::string key;
+
+    int autoindex = true;
+    ssize_t max_body_size = DEFAULT_MAX_BODY_SIZE;
+    std::string root = "";
+    std::vector<std::string> hosts;
+    std::vector<unsigned int> ports;
+    std::map<unsigned int, std::string> error_pages;
+    std::map<std::string, Location *> locations;
+    std::map<std::string, std::string> redirections; // Ajout de cette ligne
+
+    for (size_t index = 0; data[index]; (void)0)
+    {
+        while (index < data.size() && (isspace(data[index]) || data[index] == '}'))
+            index++;
+        if (index >= data.size())
+            break;
+        try
+        {
+            key = getDirectiveKey(data, index);
+            if (key == "autoindex")
+                parseAutoindex(getDirective(data, index), autoindex);
+            else if (key == "client_max_body_size")
+                parseMaxBodySize(getDirective(data, index), max_body_size);
+            else if (key == "root")
+                parseRoot(getDirective(data, index), root);
+            else if (key == "server_name")
+                parseHost(getDirective(data, index), hosts);
+            else if (key == "listen")
+                parsePort(getDirective(data, index), ports);
+            else if (key == "error_page")
+                parseErrorPage(getDirective(data, index), error_pages);
+            else if (key == "location")
+                parseLocation(getLocationBlock(data, index), locations);
+            else if (key == "redirection") // Ajout de cette condition
+                parseRedirection(getDirective(data, index), redirections);
+            else
+                throw std::invalid_argument(PARSING_UNEXPECTED);
+            if (index < data.size())
+                index++;
+        }
+        catch (const std::exception &e)
+        {
+            if (!locations.empty())
+            {
+                for (std::map<std::string, Location *>::iterator it = locations.begin();
+                     it != locations.end(); it++)
+                    delete (it->second);
+            }
+            throw std::invalid_argument(PARSING_UNEXPECTED);
+        }
+    }
+    return (new Server(autoindex, max_body_size, root, hosts, ports,
+                      error_pages, locations, redirections));
+}
+
+static bool curlyBracketsAreMatched(const std::string &content)
+{
+	size_t curly_brackets;
 
 	curly_brackets = 0;
 	for (size_t index = 0; index < content.size(); index++)
@@ -410,11 +439,11 @@ static bool	curly_brackets_are_matched(const std::string& content)
 	return (curly_brackets == 0);
 }
 
-void	parse_conf_file(const std::string& file, std::vector<Server *> &servers)
+void parseConfigurationFile(const std::string &file, std::vector<Server *> &servers)
 {
-	std::string	content = get_conf_content(file);
+	std::string content = getConfContent(file);
 
-	if (curly_brackets_are_matched(content) == false)
+	if (curlyBracketsAreMatched(content) == false)
 		throw std::invalid_argument(PARSING_UNMATCHED_BRACKET);
 	for (size_t index = 0; index < content.size(); index++)
 	{
@@ -422,7 +451,7 @@ void	parse_conf_file(const std::string& file, std::vector<Server *> &servers)
 			index++;
 		if (content.compare(index, SIZE_SERVER, SERVER_BLOCK_NAME) != 0)
 			throw std::invalid_argument(PARSING_UNEXPECTED);
-		servers.push_back(get_server(get_server_block(content, index)));
+		servers.push_back(getServer(getServerBlock(content, index)));
 		servers.back()->init();
 		servers.back()->run();
 	}

@@ -6,8 +6,16 @@ NAME			:=	webserv
 
 # ---------------------------------- PROGRAM --------------------------------- #
 
-SRC				+=	main.cpp Server.cpp Location.cpp parsing/conf.cpp parsing_request.cpp handle_get_request.cpp 
-SRC				+=	utils.cpp http_request.cpp handle_post_request.cpp post_request_utils.cpp
+SRC				+=	main.cpp
+SRC				+=	Server.cpp
+SRC				+=	Location.cpp
+SRC				+=	HTTPRequest.cpp
+SRC				+=	utils.cpp
+
+# --------------------------------- PARSING --------------------------------- #
+
+SRC				+=	parsing/conf.cpp
+SRC				+=	parsing/request.cpp
 
 # --------------------------------- COMMANDS --------------------------------- #
 

@@ -1,16 +1,13 @@
 #include "Server.hpp"
 
-/*Server::Server(uint16_t port) : m_port(port), m_serverFd(-1)
-{
-}*/
+volatile sig_atomic_t g_sig = 0;
 
-Server::Server(int autoindex, ssize_t max_body_size, std::string root, \
-	std::vector<std::string> hosts, std::vector<unsigned int> ports, \
-	std::map<unsigned int, std::string> error_pages, \
-	std::map<std::string, Location *> locations): \
-	_autoindex(autoindex), _max_body_size(max_body_size), _root(root), \
-	_hosts(hosts), _ports(ports), _error_pages(error_pages), \
-	_locations(locations)
+static void handle_sigint(int signal)
+{
+	if (signal == SIGINT) g_sig = 1;
+}
+
+Server::Server(int autoindex, ssize_t max_body_size, std::string root, std::vector<std::string> hosts, std::vector<unsigned int> ports, std::map<unsigned int, std::string> error_pages, std::map<std::string, Location *> locations, std::map<std::string, std::string> redirections): _autoindex(autoindex), _max_body_size(max_body_size), _root(root), _hosts(hosts), _ports(ports), _error_pages(error_pages), _locations(locations), _redirections(redirections)
 {
 	if (_max_body_size == UNSET)
 		throw std::invalid_argument(PARSING_UNEXPECTED);
@@ -19,7 +16,7 @@ Server::Server(int autoindex, ssize_t max_body_size, std::string root, \
 	if (_hosts.empty())
 		_hosts.push_back("localhost");
 	if (_ports.empty())
-		_ports.push_back(80);
+		_ports.push_back(8080);
 	memset(&m_address, 0, sizeof(m_address));
 }
 
@@ -42,18 +39,19 @@ void Server::init()
 		handleError("Socket creation failed");
 	m_address.sin_family = AF_INET;
 	m_address.sin_addr.s_addr = htonl(INADDR_ANY);
-	m_address.sin_port = htons(m_port);
+	m_address.sin_port = htons(static_cast<uint16_t>(*_ports.begin()));
 
 	if (bind(m_serverFd, (struct sockaddr *)(&m_address), sizeof(m_address)) < 0)
 		handleError("Binding failed");
 
 	if (listen(m_serverFd, 10) < 0)
 		handleError("Listening failed");
-	std::cout << GREEN << "Server is listening on port " << m_port << "..." << RESET << std::endl;
+	std::cout << GREEN << "http://localhost:" << *_ports.begin() << "..." << RESET << std::endl;
 }
 
 void Server::run()
 {
+	signal(SIGINT, handle_sigint);
 	int epollFd = epoll_create1(0);
 	if (epollFd < 0)
 		handleError("epoll_create1 failed");
@@ -68,9 +66,16 @@ void Server::run()
 	int nfds, connFd;
 	while (true)
 	{
-		nfds = epoll_wait(epollFd, events, MAX_EVENT, -1);
+		nfds = epoll_wait(epollFd, events, MAX_EVENT, 1000);
 		if (nfds < 0)
-			handleError("epoll_wait");
+		{
+			if (g_sig)
+			{
+				std::cout << GREEN << "\nSIGINT received, servers shutting down..." << RESET << std::endl;
+				break;
+			}
+			else handleError("epoll_wait");
+		}
 
 		for (int i = 0; i < nfds; i++)
 		{
@@ -100,7 +105,7 @@ void Server::run()
 					epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
 					continue;
 				}
-				Server::startParsing(eventFd, bytesRead, buffer);
+				Server::parseRequest(eventFd, bytesRead, buffer);
 
 				close(eventFd);
 				epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
@@ -114,88 +119,59 @@ static std::string generateErrorPage(int code, const std::string &message)
 {
 	std::ostringstream page;
 	page << "<!DOCTYPE html>\n"
-		 << "<html lang=\"en\">\n"
-		 << "<head>\n"
-		 << "    <meta charset=\"UTF-8\">\n"
-		 << "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
-		 << "    <title>Error " << code << "</title>\n"
-		 << "    <style>\n"
-		 << "        body {\n"
-		 << "            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\n"
-		 << "            display: flex;\n"
-		 << "            justify-content: center;\n"
-		 << "            align-items: center;\n"
-		 << "            height: 100vh;\n"
-		 << "            margin: 0;\n"
-		 << "            background-color:rgb(223, 223, 223);\n"
-		 << "            color: #ecf0f1;\n"
-		 << "            text-align: center;\n"
-		 << "        }\n"
-		 << "        .error-container {\n"
-		 << "            background-color:rgb(236, 236, 236);\n"
-		 << "            padding: 40px;\n"
-		 << "            border-radius: 10px;\n"
-		 << "            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);\n"
-		 << "            max-width: 400px;\n"
-		 << "            width: 100%;\n"
-		 << "        }\n"
-		 << "        h1 {\n"
-		 << "            font-size: 6rem;\n"
-		 << "            color: #e74c3c;\n"
-		 << "            margin: 0;\n"
-		 << "        }\n"
-		 << "        p {\n"
-		 << "            font-size: 1.2rem;\n"
-		 << "            color: #bdc3c7;\n"
-		 << "            margin-top: 15px;\n"
-		 << "        }\n"
-		 << "        .message {\n"
-		 << "            font-weight: bold;\n"
-		 << "            color:rgb(20, 20, 20);\n"
-		 << "        }\n"
-		 << "        a {\n"
-		 << "            display: inline-block;\n"
-		 << "            margin-top: 30px;\n"
-		 << "            padding: 12px 24px;\n"
-		 << "            background-color: #3498db;\n"
-		 << "            color: white;\n"
-		 << "            text-decoration: none;\n"
-		 << "            border-radius: 4px;\n"
-		 << "            font-size: 1rem;\n"
-		 << "            transition: background-color 0.3s;\n"
-		 << "        }\n"
-		 << "        a:hover {\n"
-		 << "            background-color: #2980b9;\n"
-		 << "        }\n"
-		 << "        a:active {\n"
-		 << "            background-color: #1c638d;\n"
-		 << "        }\n"
-		 << "    </style>\n"
-		 << "</head>\n"
-		 << "<body>\n"
-		 << "    <div class=\"error-container\">\n"
-		 << "        <h1>" << code << "</h1>\n"
-		 << "        <p class=\"message\">" << message << "</p>\n"
-		 << "        <a href=\"/\">Back to Home</a>\n"
-		 << "    </div>\n"
-		 << "</body>\n"
-		 << "</html>\n";
+		<< "<html lang=\"en\">\n"
+		<< "<head>\n"
+		<< "    <meta charset=\"UTF-8\">\n"
+		<< "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+		<< "    <title>Error " << code << "</title>\n"
+		<< "    <link rel=\"stylesheet\" href=\"styles.css\">\n"
+		<< "</head>\n"
+		<< "<body>\n"
+		<< "    <div class=\"container\">\n"
+		<< "        <h1>" << code << "</h1>\n"
+		<< "        <p class=\"error-message\">" << message << "</p>\n"
+		<< "        <div class=\"button-container-2\">\n"
+		<< "            <a class=\"button\" href=\"/index.html\">Back to Home</a>\n"
+		<< "        </div>\n"
+		<< "    </div>\n"
+		<< "</body>\n"
+		<< "</html>\n";
 
 	return page.str();
 }
 
 void Server::sendError(int fd, int code, const std::string &message)
 {
-	std::string body = generateErrorPage(code, message);
+	std::map<unsigned int, std::string>::const_iterator it = _error_pages.find(static_cast<unsigned int>(code));
+	std::string body;
+	if(it != _error_pages.end())
+	{
+		const std::string& error_page_path = it->second;
+        std::ifstream error_file(error_page_path.c_str());
+        if (!error_file) {
+		}
+        if (error_file.is_open()) 
+		{
+            std::ostringstream buffer;
+            buffer << error_file.rdbuf();
+            body = buffer.str();
+            error_file.close();
+        }
+		else
+			body = generateErrorPage(code, message);
+	}
+	else
+		body = generateErrorPage(code, message);
 	std::ostringstream response;
 
-	std::cerr << BLUE "[ERROR]" RESET ": " << body << std::endl;
+	std::cerr << BLUE ERROR_PREFIX << code << " " << message << RESET << std::endl;
 	response << "HTTP/1.1 " << code << " " << message << "\r\n"
-			 << "Content-Type: text/html\r\n"
-			 << "Content-Length: " << body.size() << "\r\n"
-			 << "\r\n"
-			 << body;
+		<< "Content-Type: text/html\r\n"
+		<< "Content-Length: " << body.size() << "\r\n"
+		<< "\r\n"
+		<< body;
 	send(fd, response.str().c_str(), response.str().size(), 0);
+	
 }
 
 void Server::handleError(const std::string &msg)
@@ -220,4 +196,29 @@ void Server::setNonBlocking(int fd)
 int	Server::get_autoindex(void) const
 {
 	return (_autoindex);
+}
+
+std::string	Server::parseRequestTarget(const std::string& request) {
+	std::istringstream stream(request);
+	std::string method, path;
+	stream >> method >> path;
+	return path;
+}
+
+std::string	Server::getHeader(const std::string& request, const std::string& key) {
+	size_t pos = request.find(key + ": ");
+	if (pos == std::string::npos) return "";
+	size_t start = pos + key.length() + 2;
+	size_t end = request.find("\r\n", start);
+	return request.substr(start, end - start);
+}
+
+const std::map<std::string, std::string> &Server::getRedirections() const 
+{
+    return _redirections;
+}
+
+const std::map<unsigned int, std::string> &Server::getErrorPages() const
+{
+	return _error_pages;
 }
