@@ -18,9 +18,9 @@ static void saveMapToFile(const std::map<std::string, std::string> &data, const 
 static std::string getCookie(const std::string &request)
 {
     size_t cookiePos = request.find("Cookie");
-	size_t cookieEnd = request.find("\r\n", cookiePos);
-	std::string cookie = request.substr(cookiePos + 18, cookieEnd - cookiePos - 18);
-	return cookie;
+    size_t cookieEnd = request.find("\r\n", cookiePos);
+    std::string cookie = request.substr(cookiePos + 18, cookieEnd - cookiePos - 18);
+    return cookie;
 }
 
 void Server::handlePostRequest(int eventFd, std::string &request)
@@ -29,15 +29,25 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 
     size_t header_end = request.find("\r\n\r\n");
     if (header_end == std::string::npos)
-        return sendError(eventFd, 400, "Bad Request");
+    {
+        sendError(eventFd, 400, "Bad Request");
+        return;
+    }
 
     std::string first_line = request.substr(0, request.find("\r\n"));
     std::vector<std::string> request_splitted = ft_split(first_line, ' ');
     if (request_splitted.size() != 3)
-        return sendError(eventFd, 400, "Bad Request");
+    {
+        sendError(eventFd, 400, "Bad Request");
+        return;
+    }
 
-    if (request_splitted[2].compare(GOOD_HTTP_VERSION))
-        return sendError(eventFd, 505, "HTTP Version Not Supported");
+    if (request_splitted[2].compare(GOOD_HTTP_VERSION) != 0)
+    {
+        sendError(eventFd, 505, "HTTP Version Not Supported");
+        return;
+    }
+
     http_request.setVersion(request_splitted[2]);
     std::string uri = request_splitted[1];
     http_request.setURI(uri);
@@ -49,9 +59,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
     {
         std::string extension = uri.substr(dot_pos);
         if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi")
-        {
             isCGI = true;
-        }
     }
 
     if (isCGI)
@@ -62,10 +70,16 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 
     size_t content_length = http_request.getContentLength();
     if (content_length == 0)
-        return sendError(eventFd, 411, "Length Required");
+    {
+        sendError(eventFd, 411, "Length Required");
+        return;
+    }
 
     if (content_length > (size_t)_max_body_size)
-        return sendError(eventFd, 413, "Entity Too Large");
+    {
+        sendError(eventFd, 413, "Entity Too Large");
+        return;
+    }
 
     std::string body = request.substr(header_end + 4, content_length);
     std::string content_type = http_request.getContentType();
@@ -76,17 +90,21 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         std::string test = form_data["data"];
 
         std::string response = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type:  text/plain\r\n"
+                               "Content-Type: text/plain\r\n"
                                "\r\n"
                                "Received data:" +
                                test;
+
         send(eventFd, response.c_str(), response.size(), 0);
     }
     else if (content_type.find("multipart/form-data") != std::string::npos)
     {
         size_t boundary_pos = content_type.find("boundary=");
         if (boundary_pos == std::string::npos)
-            return sendError(eventFd, 400, "Bad Request: No boundary in Content-Type");
+        {
+            sendError(eventFd, 400, "Bad Request: No boundary in Content-Type");
+            return;
+        }
 
         std::string boundary = "--" + content_type.substr(boundary_pos + 9);
         std::vector<std::string> parts;
@@ -108,12 +126,12 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         for (size_t i = 0; i < parts.size(); ++i)
         {
             std::string part = parts[i];
-            size_t header_end = part.find("\r\n\r\n");
-            if (header_end == std::string::npos)
+            size_t part_header_end = part.find("\r\n\r\n");
+            if (part_header_end == std::string::npos)
                 continue;
 
-            std::string headers = part.substr(0, header_end);
-            std::string content = part.substr(header_end + 4);
+            std::string headers = part.substr(0, part_header_end);
+            std::string content = part.substr(part_header_end + 4);
 
             if (!content.empty() && content[content.length() - 1] == '\n')
                 content.erase(content.length() - 1);
@@ -131,24 +149,30 @@ void Server::handlePostRequest(int eventFd, std::string &request)
             size_t filename_pos = headers.find("filename=\"");
             if (filename_pos != std::string::npos && headers[filename_pos + 10] != '\"')
             {
-                std::string upload_path = "www/default.png";
-
-                if (access(upload_path.c_str(), F_OK) == 0)
-                {
-                    if (remove(upload_path.c_str()) != 0)
-                        return sendError(eventFd, 500, "Internal Server Error: Failed to remove existing default.png");
-                }
-
+                std::string session_id = getCookie(request);
+                if (session_id.empty())
+                    session_id = "anonymous";
+                filename_pos += 10;
+                size_t filename_end = headers.find("\"", filename_pos);
+                std::string original_filename = headers.substr(filename_pos, filename_end - filename_pos);
+                std::string extension = ".bin";
+                size_t ext_dot = original_filename.find_last_of('.');
+                if (ext_dot != std::string::npos)
+                    extension = original_filename.substr(ext_dot);
+                std::string new_filename = session_id + extension;
+                std::string upload_path = "www/" + new_filename;
                 std::ofstream ofs(upload_path.c_str(), std::ios::binary);
                 if (ofs)
                 {
-                    ofs.write(content.c_str(), static_cast<long>(content.size()));
+                    ofs.write(content.c_str(), static_cast<std::streamsize>(content.size()));
                     ofs.close();
-                    saved_files.push_back("default.png");
+                    saved_files.push_back(new_filename);
+                    form_data[name] = new_filename;
                 }
                 else
                 {
-                    return sendError(eventFd, 500, "Internal Server Error: Failed to save default.png");
+                    sendError(eventFd, 500, "Internal Server Error: Failed to save file");
+                    return;
                 }
             }
             else
@@ -156,27 +180,30 @@ void Server::handlePostRequest(int eventFd, std::string &request)
                 form_data[name] = content;
             }
         }
+
         std::string cookie = getCookie(request);
         if (cookie.empty())
             cookie = "anonymous";
 
         std::string cookiePath = "www/" + cookie + ".txt";
         saveMapToFile(form_data, cookiePath, eventFd);
-        saveMapToFile(form_data, cookiePath, eventFd);
+
         std::string response = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: text/plain\r\n"
                                "\r\n"
                                "Received data:\n";
 
-        for (std::map<std::string, std::string>::iterator it = form_data.begin(); it != form_data.end(); ++it)
+        std::map<std::string, std::string>::iterator it;
+        for (it = form_data.begin(); it != form_data.end(); ++it)
             response += "- " + it->first + ": " + it->second + "\n";
 
         if (!saved_files.empty())
         {
-            response += "Saved files:\n";
+            response += "Saved file:\n";
             for (size_t i = 0; i < saved_files.size(); ++i)
                 response += "- " + saved_files[i] + "\n";
         }
+
         send(eventFd, response.c_str(), response.size(), 0);
     }
 }
@@ -381,14 +408,15 @@ void Server::handleGetRequest(int eventFd, std::string &request)
     http_request.setVersion(request_splitted[2]);
     std::string uri = request_splitted[1];
 
-	const std::map<std::string, std::string>& redirections = getRedirections();
+    const std::map<std::string, std::string> &redirections = getRedirections();
     if (redirections.find(uri) != redirections.end())
     {
-        const std::string& destination = redirections.at(uri);
+        const std::string &destination = redirections.at(uri);
         std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
-                              "Location: " + destination + "\r\n"
-                              "Content-Length: 0\r\n"
-                              "\r\n";
+                               "Location: " +
+                               destination + "\r\n"
+                                             "Content-Length: 0\r\n"
+                                             "\r\n";
         send(eventFd, response.c_str(), response.size(), 0);
         return;
     }
@@ -401,12 +429,10 @@ void Server::handleGetRequest(int eventFd, std::string &request)
 
     std::string file_path = "www" + uri;
 
-    // Check if the file exists
     std::ifstream file(file_path.c_str());
     if (!file.is_open())
         return sendError(eventFd, 404, "Page Not Found");
 
-    // Check if this is a CGI file based on extension
     bool isCGI = false;
     size_t dot_pos = file_path.find_last_of('.');
     if (dot_pos != std::string::npos)
@@ -458,7 +484,6 @@ void Server::handleGetRequest(int eventFd, std::string &request)
             sessionID = getCookie(request);
             std::cout << GREEN << "Welcome back my heroine!" << RESET << std::endl;
             std::cout << "SessionID: " << sessionID << std::endl;
-            std::cout << "Cookie content: " << _cookies[sessionID] << std::endl;
         }
         else
         {
@@ -466,7 +491,6 @@ void Server::handleGetRequest(int eventFd, std::string &request)
             setCookie = "Set-Cookie: SESSIONID=" + sessionID + "; Path=/; Max-Age=3600\r\n";
             _cookies[sessionID] = "firstname: Unknown\nlastname: Unknown\nphoto: \nschool: Unknown\n";
             std::string cookiePath = "www/" + sessionID + ".txt";
-            std::cerr << "[DEBUG]: cookiePath: [" << cookiePath << "]" << std::endl;
             std::ofstream cookieFile(cookiePath.c_str());
             if (!cookieFile)
             {
