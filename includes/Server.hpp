@@ -26,6 +26,7 @@ class Server
 		std::map<unsigned int, std::string>	_error_pages;
 		std::map<std::string, Location *>	_locations;
 		std::map<std::string, std::string>	_cookies;
+		std::map<std::string, std::string> _redirections;
 
 		void	handleError(const std::string& msg);
 		void	setNonBlocking(int fd);
@@ -38,6 +39,7 @@ class Server
 		int		get_autoindex(void) const;
 		std::string	parseRequestTarget(const std::string& request);
 		std::string	getHeader(const std::string& request, const std::string& key);
+		const std::map<std::string, std::string> &getRedirections() const;
 
 
 	public:
@@ -45,7 +47,8 @@ class Server
 		Server(int autoindex, ssize_t max_body_size, std::string root, \
 				std::vector<std::string> hosts, std::vector<unsigned int> ports, \
 				std::map<unsigned int, std::string> error_pages, \
-				std::map<std::string, Location *> locations);
+				std::map<std::string, Location *> locations, 
+				std::map<std::string, std::string> redirections);
 		virtual ~Server ();
 
 		void	init();

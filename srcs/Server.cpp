@@ -7,7 +7,7 @@ static void handle_sigint(int signal)
 	if (signal == SIGINT) g_sig = 1;
 }
 
-Server::Server(int autoindex, ssize_t max_body_size, std::string root, std::vector<std::string> hosts, std::vector<unsigned int> ports, std::map<unsigned int, std::string> error_pages, std::map<std::string, Location *> locations): _autoindex(autoindex), _max_body_size(max_body_size), _root(root), _hosts(hosts), _ports(ports), _error_pages(error_pages), _locations(locations)
+Server::Server(int autoindex, ssize_t max_body_size, std::string root, std::vector<std::string> hosts, std::vector<unsigned int> ports, std::map<unsigned int, std::string> error_pages, std::map<std::string, Location *> locations, std::map<std::string, std::string> redirections): _autoindex(autoindex), _max_body_size(max_body_size), _root(root), _hosts(hosts), _ports(ports), _error_pages(error_pages), _locations(locations), _redirections(redirections)
 {
 	if (_max_body_size == UNSET)
 		throw std::invalid_argument(PARSING_UNEXPECTED);
@@ -191,4 +191,9 @@ std::string	Server::getHeader(const std::string& request, const std::string& key
 	size_t start = pos + key.length() + 2;
 	size_t end = request.find("\r\n", start);
 	return request.substr(start, end - start);
+}
+
+const std::map<std::string, std::string> &Server::getRedirections() const 
+{
+    return _redirections;
 }

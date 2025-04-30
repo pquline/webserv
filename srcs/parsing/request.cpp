@@ -354,6 +354,18 @@ void Server::handleGetRequest(int eventFd, std::string &request)
 		return sendError(eventFd, 505, "HTTP Version Not Supported");
 	http_request.setVersion(request_splitted[2]);
 	std::string uri = request_splitted[1];
+	
+	const std::map<std::string, std::string>& redirections = getRedirections();
+    if (redirections.find(uri) != redirections.end())
+    {
+        const std::string& destination = redirections.at(uri);
+        std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
+                              "Location: " + destination + "\r\n"
+                              "Content-Length: 0\r\n"
+                              "\r\n";
+        send(eventFd, response.c_str(), response.size(), 0);
+        return;
+    }
 	if (uri == "/")
 	{
 		uri = "/index.html"; // Fichier par défaut

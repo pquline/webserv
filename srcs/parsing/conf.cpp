@@ -336,60 +336,92 @@ static void parseLocation(const std::string &directive,
 	}
 	locations[uri] = new Location(autoindex, root, error_pages, indexes);
 }
+static void parseRedirection(const std::string &directive, std::map<std::string, std::string> &redirections)
+{
+    size_t index = std::string("redirection").size();
+    size_t begin;
+    std::string from;
+    std::string to;
+
+    while (isspace(directive[index]))
+        index++;
+    
+    // Parse "from" path
+    begin = index;
+    while (index < directive.size() && !isspace(directive[index]))
+        index++;
+    from = directive.substr(begin, index - begin);
+
+    while (isspace(directive[index]))
+        index++;
+    
+    // Parse "to" path
+    begin = index;
+    while (index < directive.size() && !isspace(directive[index]) && directive[index] != ';')
+        index++;
+    to = directive.substr(begin, index - begin);
+
+    redirections[from] = to;
+    
+    std::cerr << DEBUG_PREFIX << "redirection: [" << from << " -> " << to << "]" << std::endl;
+}
 
 Server *getServer(std::string data)
 {
-	std::string key;
+    std::string key;
 
-	int autoindex = true;
-	ssize_t max_body_size = DEFAULT_MAX_BODY_SIZE;
-	std::string root = "";
-	std::vector<std::string> hosts;
-	std::vector<unsigned int> ports;
-	std::map<unsigned int, std::string> error_pages;
-	std::map<std::string, Location *> locations;
+    int autoindex = true;
+    ssize_t max_body_size = DEFAULT_MAX_BODY_SIZE;
+    std::string root = "";
+    std::vector<std::string> hosts;
+    std::vector<unsigned int> ports;
+    std::map<unsigned int, std::string> error_pages;
+    std::map<std::string, Location *> locations;
+    std::map<std::string, std::string> redirections; // Ajout de cette ligne
 
-	for (size_t index = 0; data[index]; (void)0)
-	{
-		while (index < data.size() && (isspace(data[index]) || data[index] == '}'))
-			index++;
-		if (index >= data.size())
-			break;
-		try
-		{
-			key = getDirectiveKey(data, index);
-			if (key == "autoindex")
-				parseAutoindex(getDirective(data, index), autoindex);
-			else if (key == "client_max_body_size")
-				parseMaxBodySize(getDirective(data, index), max_body_size);
-			else if (key == "root")
-				parseRoot(getDirective(data, index), root);
-			else if (key == "server_name")
-				parseHost(getDirective(data, index), hosts);
-			else if (key == "listen")
-				parsePort(getDirective(data, index), ports);
-			else if (key == "error_page")
-				parseErrorPage(getDirective(data, index), error_pages);
-			else if (key == "location")
-				parseLocation(getLocationBlock(data, index), locations);
-			else
-				throw std::invalid_argument(PARSING_UNEXPECTED);
-			if (index < data.size())
-				index++;
-		}
-		catch (const std::exception &e)
-		{
-			if (!locations.empty())
-			{
-				for (std::map<std::string, Location *>::iterator it = locations.begin();
-					 it != locations.end(); it++)
-					delete (it->second);
-			}
-			throw std::invalid_argument(PARSING_UNEXPECTED);
-		}
-	}
-	return (new Server(autoindex, max_body_size, root, hosts, ports,
-					   error_pages, locations));
+    for (size_t index = 0; data[index]; (void)0)
+    {
+        while (index < data.size() && (isspace(data[index]) || data[index] == '}'))
+            index++;
+        if (index >= data.size())
+            break;
+        try
+        {
+            key = getDirectiveKey(data, index);
+            if (key == "autoindex")
+                parseAutoindex(getDirective(data, index), autoindex);
+            else if (key == "client_max_body_size")
+                parseMaxBodySize(getDirective(data, index), max_body_size);
+            else if (key == "root")
+                parseRoot(getDirective(data, index), root);
+            else if (key == "server_name")
+                parseHost(getDirective(data, index), hosts);
+            else if (key == "listen")
+                parsePort(getDirective(data, index), ports);
+            else if (key == "error_page")
+                parseErrorPage(getDirective(data, index), error_pages);
+            else if (key == "location")
+                parseLocation(getLocationBlock(data, index), locations);
+            else if (key == "redirection") // Ajout de cette condition
+                parseRedirection(getDirective(data, index), redirections);
+            else
+                throw std::invalid_argument(PARSING_UNEXPECTED);
+            if (index < data.size())
+                index++;
+        }
+        catch (const std::exception &e)
+        {
+            if (!locations.empty())
+            {
+                for (std::map<std::string, Location *>::iterator it = locations.begin();
+                     it != locations.end(); it++)
+                    delete (it->second);
+            }
+            throw std::invalid_argument(PARSING_UNEXPECTED);
+        }
+    }
+    return (new Server(autoindex, max_body_size, root, hosts, ports,
+                      error_pages, locations, redirections));
 }
 
 static bool curlyBracketsAreMatched(const std::string &content)
