@@ -1,54 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Webserv</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>Webserv</title>
-	<link rel="stylesheet" href="styles.css">
-</head>
+  <body>
+    <div class="container">
+      <h1>Welcome, new adventurer!</h1>
 
-<body>
-	<div class="container">
-		<h1>Welcome, new adventurer!</h1>
+      <div class="profile-picture-wrapper">
+        <div id="profile-photo">
+          <script>
+            var photoPath = "../default.png";
+            var defaultPhoto = "/default.jpg";
+            var profileImg = new Image();
 
-		<div class="profile-picture-wrapper">
-			<div id="profile-photo">
-				<script>
-					var photoPath = "../default.png";
-					var defaultPhoto = "/default.jpg";
-					var profileImg = new Image();
-
-					profileImg.onload = function () {
-						document.getElementById("profile-photo").innerHTML = `
+            profileImg.onload = function () {
+              document.getElementById("profile-photo").innerHTML = `
             <img src="${photoPath}" class="profile-picture" alt="Profile Photo">
           `;
-					};
+            };
 
-					profileImg.onerror = function () {
-						var defaultImg = new Image();
-						defaultImg.onload = function () {
-							document.getElementById("profile-photo").innerHTML = `
+            profileImg.onerror = function () {
+              var defaultImg = new Image();
+              defaultImg.onload = function () {
+                document.getElementById("profile-photo").innerHTML = `
               <img src="${defaultPhoto}" class="profile-picture" alt="Default Profile Photo">
             `;
-						};
-						defaultImg.onerror = function () {
-							document.getElementById("profile-photo").innerHTML = `
+              };
+              defaultImg.onerror = function () {
+                document.getElementById("profile-photo").innerHTML = `
               <div class="empty-circle"></div>
             `;
-						};
-						defaultImg.src = defaultPhoto;
-					};
+              };
+              defaultImg.src = defaultPhoto;
+            };
 
-					profileImg.src = photoPath;
-				</script>
-			</div>
-		</div>
+            profileImg.src = photoPath;
 
-		<a href="/cgi-bin/whoami.py" class="button">Who am I?</a>
-		<a href="editmyinfo.html" class="button">Edit my info</a>
-		<a href="/cgi-bin/clock.sh" class="button">What time is it?</a>
-	</div>
-</body>
+            function getSessionId() {
+              const cookies = document.cookie.split(";");
+              for (const cookie of cookies) {
+                const [name, value] = cookie.trim().split("=");
+                if (name === "SESSIONID") {
+                  return value;
+                }
+              }
+              return null;
+            }
 
+            function deleteUserInfo() {
+              const sessionId = getSessionId();
+              if (!sessionId) {
+                alert("Session ID not found.");
+                return;
+              }
+
+              if (
+                confirm(
+                  "Are you sure you want to delete all your information? This action cannot be undone."
+                )
+              ) {
+                fetch(`/${encodeURIComponent(sessionId)}.txt`, {
+                  method: "DELETE",
+                })
+                  .then((response) => {
+                    if (response.ok) {
+                      alert("Your information has been deleted successfully.");
+                      window.location.href = "/";
+                    } else {
+                      throw new Error("Failed to delete information.");
+                    }
+                  })
+                  .catch((error) => {
+                    alert("Error deleting your information. Please try again.");
+                    console.error("Error:", error);
+                  });
+              }
+            }
+          </script>
+        </div>
+      </div>
+
+      <div class="button-container">
+        <a href="/cgi-bin/whoami.py" class="button">Who am I?</a>
+        <a href="editmyinfo.html" class="button">Edit my info</a>
+        <a href="/cgi-bin/clock.sh" class="button">What time is it?</a>
+        <button class="button" onclick="deleteUserInfo()">
+          Delete My Information
+        </button>
+      </div>
+    </div>
+  </body>
 </html>

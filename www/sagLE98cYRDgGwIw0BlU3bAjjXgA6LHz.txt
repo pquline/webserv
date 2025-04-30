@@ -1,4 +1,0 @@
-firstname: Chacha
-lastname: XU
-photo: 
-school: lalala 42
