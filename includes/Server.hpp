@@ -40,6 +40,7 @@ class Server
 		std::string	parseRequestTarget(const std::string& request);
 		std::string	getHeader(const std::string& request, const std::string& key);
 		const std::map<std::string, std::string> &getRedirections() const;
+		const std::map<unsigned int, std::string> &getErrorPages() const;
 
 
 	public:

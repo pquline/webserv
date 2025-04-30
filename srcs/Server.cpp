@@ -142,7 +142,26 @@ static std::string generateErrorPage(int code, const std::string &message)
 
 void Server::sendError(int fd, int code, const std::string &message)
 {
-	std::string body = generateErrorPage(code, message);
+	std::map<unsigned int, std::string>::const_iterator it = _error_pages.find(static_cast<unsigned int>(code));
+	std::string body;
+	if(it != _error_pages.end())
+	{
+		const std::string& error_page_path = it->second;
+        std::ifstream error_file(error_page_path.c_str());
+        if (!error_file) {
+		}
+        if (error_file.is_open()) 
+		{
+            std::ostringstream buffer;
+            buffer << error_file.rdbuf();
+            body = buffer.str();
+            error_file.close();
+        }
+		else
+			body = generateErrorPage(code, message);
+	}
+	else
+		body = generateErrorPage(code, message);
 	std::ostringstream response;
 
 	std::cerr << BLUE ERROR_PREFIX << code << " " << message << RESET << std::endl;
@@ -152,6 +171,7 @@ void Server::sendError(int fd, int code, const std::string &message)
 		<< "\r\n"
 		<< body;
 	send(fd, response.str().c_str(), response.str().size(), 0);
+	
 }
 
 void Server::handleError(const std::string &msg)
@@ -196,4 +216,9 @@ std::string	Server::getHeader(const std::string& request, const std::string& key
 const std::map<std::string, std::string> &Server::getRedirections() const 
 {
     return _redirections;
+}
+
+const std::map<unsigned int, std::string> &Server::getErrorPages() const
+{
+	return _error_pages;
 }
