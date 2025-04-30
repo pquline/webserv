@@ -1,5 +1,8 @@
 # WEBSERV
 webserv
+*.png
+!default.png
+*.txt
 
 # Environment
 .vscode
