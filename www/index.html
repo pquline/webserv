@@ -27,14 +27,17 @@
 
             function extractPhotoPathFromText(text) {
               const match = text.match(/^photo:\s*(.*)$/m);
+              console.log("[DEBUG]: extractPhotoPathFromText(): " + match);
               return match ? match[1].trim() : null;
             }
 
             async function loadProfilePhoto() {
               const sessionId = getSessionId();
+              console.log("[DEBUG]: SESSIONID=" + sessionId);
               const defaultPhoto = "/default.png";
 
               if (!sessionId) {
+                console.log("[DEBUG]: Default photo loaded.");
                 displayImage(defaultPhoto);
                 return;
               }

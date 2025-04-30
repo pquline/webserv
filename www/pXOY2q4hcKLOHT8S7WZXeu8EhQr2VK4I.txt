@@ -1,4 +1,0 @@
-firstname: Unknown
-lastname: Unknown
-photo: 
-school: Unknown

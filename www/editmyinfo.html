@@ -1,69 +1,94 @@
 <!DOCTYPE html>
 <html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit My Information</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      function getSessionId() {
+        const cookies = document.cookie.split(";");
+        for (const cookie of cookies) {
+          const [name, value] = cookie.trim().split("=");
+          if (name === "SESSIONID") {
+            return value;
+          }
+        }
+        return null;
+      }
 
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Edit My Information</title>
-	<link rel="icon" href="/favicon.ico" />
-	<link rel="stylesheet" href="styles.css">
-</head>
+      window.onload = function () {
+        const sessionId = getSessionId();
+        if (sessionId) {
+          document.getElementById("sessionId").value = sessionId;
+        }
+      };
 
-<body>
-	<div class="container">
-		<h1>Edit My Information</h1>
-		<form id="infoForm" action="/" method="POST" enctype="multipart/form-data">
-			<div class="form-group">
-				<label for="nom">First Name:</label>
-				<input type="text" id="firstname" name="firstname"><!-- required -->
-			</div>
+      document.getElementById("photo").addEventListener("change", function (e) {
+        const preview = document.getElementById("preview");
+        const file = e.target.files[0];
 
-			<div class="form-group">
-				<label for="prenom">Last Name:</label>
-				<input type="text" id="lastname" name="lastname"><!-- required -->
-			</div>
+        if (file) {
+          if (file.size > 10240) {
+            alert("File too large. Maximum allowed size is 10KB.");
+            e.target.value = "";
+            preview.style.display = "none";
+            return;
+          }
 
-			<div class="form-group">
-				<label for="school">School:</label>
-				<input type="text" id="school" name="school"><!-- required -->
-			</div>
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            preview.src = e.target.result;
+            preview.style.display = "block";
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    </script>
+  </head>
 
-			<div class="form-group">
-				<label for="photo">Profile Picture:</label>
-				<input type="file" id="photo" name="photo" accept="image/*">
-				<img id="preview" class="preview" alt="Image preview">
-			</div>
+  <body>
+    <div class="container">
+      <h1>Edit My Information</h1>
+      <form
+        id="infoForm"
+        action="/"
+        method="POST"
+        enctype="multipart/form-data"
+      >
+        <div class="form-group">
+          <label for="nom">First Name:</label>
+          <input type="text" id="firstname" name="firstname" required />
+        </div>
 
-			<div class="button-container">
-				<button type="button" class="button edit" onclick="window.history.back()">Back</button>
-				<button type="submit" class="button edit">Send</button>
-			</div>
-		</form>
-	</div>
+        <div class="form-group">
+          <label for="prenom">Last Name:</label>
+          <input type="text" id="lastname" name="lastname" required />
+        </div>
 
-	<script>
-		document.getElementById('photo').addEventListener('change', function (e) {
-			const preview = document.getElementById('preview');
-			const file = e.target.files[0];
+        <div class="form-group">
+          <label for="school">School:</label>
+          <input type="text" id="school" name="school" required />
+        </div>
 
-			if (file) {
-				if (file.size > 10240) {
-					alert('File too large. Maximum allowed size is 10KB.');
-					e.target.value = '';
-					preview.style.display = 'none';
-					return;
-				}
-				const reader = new FileReader();
+        <div class="form-group">
+          <label for="photo">Profile Picture:</label>
+          <input type="file" id="photo" name="photo" accept="image/*" required />
+          <img id="preview" class="preview" alt="Image preview" />
+        </div>
 
-				reader.onload = function (e) {
-					preview.src = e.target.result;
-					preview.style.display = 'block';
-				}
-
-				reader.readAsDataURL(file);
-			}
-		});
-	</script>
-</body>
-
+        <div class="button-container">
+          <button
+            type="button"
+            class="button edit"
+            onclick="window.history.back()"
+          >
+            Back
+          </button>
+          <button type="submit" class="button edit">Send</button>
+        </div>
+      </form>
+    </div>
+  </body>
 </html>
