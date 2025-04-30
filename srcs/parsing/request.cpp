@@ -458,7 +458,6 @@ void Server::handleGetRequest(int eventFd, std::string &request)
             sessionID = getCookie(request);
             std::cout << GREEN << "Welcome back my heroine!" << RESET << std::endl;
             std::cout << "SessionID: " << sessionID << std::endl;
-            std::cout << "Cookie content: " << _cookies[sessionID] << std::endl;
         }
         else
         {
@@ -466,7 +465,6 @@ void Server::handleGetRequest(int eventFd, std::string &request)
             setCookie = "Set-Cookie: SESSIONID=" + sessionID + "; Path=/; Max-Age=3600\r\n";
             _cookies[sessionID] = "firstname: Unknown\nlastname: Unknown\nphoto: \nschool: Unknown\n";
             std::string cookiePath = "www/" + sessionID + ".txt";
-            std::cerr << "[DEBUG]: cookiePath: [" << cookiePath << "]" << std::endl;
             std::ofstream cookieFile(cookiePath.c_str());
             if (!cookieFile)
             {

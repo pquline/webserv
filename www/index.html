@@ -14,33 +14,6 @@
       <div class="profile-picture-wrapper">
         <div id="profile-photo">
           <script>
-            var photoPath = "../default.png";
-            var defaultPhoto = "/default.jpg";
-            var profileImg = new Image();
-
-            profileImg.onload = function () {
-              document.getElementById("profile-photo").innerHTML = `
-            <img src="${photoPath}" class="profile-picture" alt="Profile Photo">
-          `;
-            };
-
-            profileImg.onerror = function () {
-              var defaultImg = new Image();
-              defaultImg.onload = function () {
-                document.getElementById("profile-photo").innerHTML = `
-              <img src="${defaultPhoto}" class="profile-picture" alt="Default Profile Photo">
-            `;
-              };
-              defaultImg.onerror = function () {
-                document.getElementById("profile-photo").innerHTML = `
-              <div class="empty-circle"></div>
-            `;
-              };
-              defaultImg.src = defaultPhoto;
-            };
-
-            profileImg.src = photoPath;
-
             function getSessionId() {
               const cookies = document.cookie.split(";");
               for (const cookie of cookies) {
@@ -52,6 +25,51 @@
               return null;
             }
 
+            function extractPhotoPathFromText(text) {
+              const match = text.match(/^photo:\s*(.*)$/m);
+              return match ? match[1].trim() : null;
+            }
+
+            async function loadProfilePhoto() {
+              const sessionId = getSessionId();
+              const defaultPhoto = "/default.png";
+
+              if (!sessionId) {
+                displayImage(defaultPhoto);
+                return;
+              }
+
+              try {
+                const response = await fetch(
+                  `/${encodeURIComponent(sessionId)}.txt`
+                );
+                if (!response.ok) throw new Error("Session file not found");
+
+                const text = await response.text();
+                const photoPath = extractPhotoPathFromText(text);
+
+                if (!photoPath) {
+                  displayImage(defaultPhoto);
+                  return;
+                }
+
+                const testImg = new Image();
+                testImg.onload = () => displayImage(photoPath);
+                testImg.onerror = () => displayImage(defaultPhoto);
+                testImg.src = photoPath;
+              } catch (error) {
+                console.error("Error loading session info:", error);
+                displayImage(defaultPhoto);
+              }
+            }
+
+            function displayImage(src) {
+              document.getElementById("profile-photo").innerHTML = `
+                    <img src="${src}" class="profile-picture" alt="Profile Photo">
+                  `;
+            }
+
+            loadProfilePhoto();
             function deleteUserInfo() {
               const sessionId = getSessionId();
               if (!sessionId) {
