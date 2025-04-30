@@ -1,0 +1,4 @@
+firstname: Chacha
+lastname: Roy
+photo: 
+school: 42

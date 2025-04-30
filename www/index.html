@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Webserv</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+	<div class="container">
+		<h1>Welcome, new adventurer!</h1>
+
+		<div class="profile-picture-wrapper">
+			<div id="profile-photo">
+				<script>
+					var photoPath = "../default.png";
+					var defaultPhoto = "/default.jpg";
+					var profileImg = new Image();
+
+					profileImg.onload = function () {
+						document.getElementById("profile-photo").innerHTML = `
+            <img src="${photoPath}" class="profile-picture" alt="Profile Photo">
+          `;
+					};
+
+					profileImg.onerror = function () {
+						var defaultImg = new Image();
+						defaultImg.onload = function () {
+							document.getElementById("profile-photo").innerHTML = `
+              <img src="${defaultPhoto}" class="profile-picture" alt="Default Profile Photo">
+            `;
+						};
+						defaultImg.onerror = function () {
+							document.getElementById("profile-photo").innerHTML = `
+              <div class="empty-circle"></div>
+            `;
+						};
+						defaultImg.src = defaultPhoto;
+					};
+
+					profileImg.src = photoPath;
+				</script>
+			</div>
+		</div>
+
+		<a href="/cgi-bin/whoami.py" class="button">Who am I?</a>
+		<a href="editmyinfo.html" class="button">Edit my info</a>
+		<a href="/cgi-bin/clock.sh" class="button">What time is it?</a>
+	</div>
+</body>
+
+</html>
