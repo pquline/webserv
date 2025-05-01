@@ -1,6 +1,8 @@
 # WEBSERV
 webserv
 *.png
+*.jp
+*.jpeg
 !default.png
 *.txt
 
