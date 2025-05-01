@@ -80,8 +80,8 @@
         const file = e.target.files[0];
 
         if (file) {
-          if (file.size > 10240) {
-            alert("File too large. Maximum allowed size is 10KB.");
+          if (file.size > 15 * 1024 * 1024) {
+            alert("File too large. Maximum allowed size is 15MB.");
             e.target.value = "";
             preview.style.display = "none";
             return;
