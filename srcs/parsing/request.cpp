@@ -25,7 +25,6 @@ static std::string getCookie(const std::string &request)
 
 void Server::handlePostRequest(int eventFd, const std::string &request)
 {
-    std::cerr << DEBUG_PREFIX << "POST request received" << std::endl;
     HTTPRequest http_request;
 
     size_t header_end = request.find("\r\n\r\n");
@@ -421,71 +420,74 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     }
     if (uri[uri.length() - 1] == '/')
     {
-    if (_autoindex)
-    {
-        std::string dir_path = "www" + uri;
-
-        DIR *dir;
-        struct dirent *ent;
-
-        if ((dir = opendir(dir_path.c_str())) != NULL)
+        if (_autoindex)
         {
-            std::string html = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of " + uri + "</title>\n</head>\n";
-            html += "<body>\n<h1>Index of " + uri + "</h1>\n<hr>\n<ul>\n";
+            std::string dir_path = "www" + uri;
 
-            if (uri != "/")
+            DIR *dir;
+            struct dirent *ent;
+
+            if ((dir = opendir(dir_path.c_str())) != NULL)
             {
-                size_t last_slash = uri.substr(0, uri.length() - 1).find_last_of('/');
-                std::string parent_path = uri.substr(0, last_slash + 1);
-                html += "<li><a href=\"" + parent_path + "\">../</a></li>\n";
-            }
+                std::string html = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of " + uri + "</title>\n</head>\n";
+                html += "<body>\n<h1>Index of " + uri + "</h1>\n<hr>\n<ul>\n";
 
-            while ((ent = readdir(dir)) != NULL)
-            {
-                std::string name = ent->d_name;
-                if (name == "." || name == "..") continue;
-
-                std::string full_path = dir_path + name;
-                struct stat statbuf;
-
-                if (stat(full_path.c_str(), &statbuf) == 0)
+                if (uri != "/")
                 {
-                    if (S_ISDIR(statbuf.st_mode))
+                    size_t last_slash = uri.substr(0, uri.length() - 1).find_last_of('/');
+                    std::string parent_path = uri.substr(0, last_slash + 1);
+                    html += "<li><a href=\"" + parent_path + "\">../</a></li>\n";
+                }
+
+                while ((ent = readdir(dir)) != NULL)
+                {
+                    std::string name = ent->d_name;
+                    if (name == "." || name == "..")
+                        continue;
+
+                    std::string full_path = dir_path + name;
+                    struct stat statbuf;
+
+                    if (stat(full_path.c_str(), &statbuf) == 0)
                     {
-                        name += "/";
-                        html += "<li><a href=\"" + uri + name + "\">" + name + "</a></li>\n";
-                    }
-                    else
-                    {
-                        html += "<li><a href=\"" + uri + name + "\">" + name + "</a></li>\n";
+                        if (S_ISDIR(statbuf.st_mode))
+                        {
+                            name += "/";
+                            html += "<li><a href=\"" + uri + name + "\">" + name + "</a></li>\n";
+                        }
+                        else
+                        {
+                            html += "<li><a href=\"" + uri + name + "\">" + name + "</a></li>\n";
+                        }
                     }
                 }
+                closedir(dir);
+
+                html += "</ul>\n<hr>\n</body>\n</html>";
+
+                std::ostringstream sizeStream;
+                sizeStream << html.size();
+                std::string sizeStr = sizeStream.str();
+
+                std::string response = "HTTP/1.1 200 OK\r\n"
+                                       "Content-Type: text/html\r\n"
+                                       "Content-Length: " +
+                                       sizeStr + "\r\n"
+                                                 "\r\n" +
+                                       html;
+
+                send(eventFd, response.c_str(), response.size(), 0);
+                return;
             }
-            closedir(dir);
-
-            html += "</ul>\n<hr>\n</body>\n</html>";
-
-            std::ostringstream sizeStream;
-            sizeStream << html.size();
-            std::string sizeStr = sizeStream.str();
-
-            std::string response = "HTTP/1.1 200 OK\r\n"
-                                  "Content-Type: text/html\r\n"
-                                  "Content-Length: " + sizeStr + "\r\n"
-                                  "\r\n" + html;
-
-            send(eventFd, response.c_str(), response.size(), 0);
-            return;
+            else
+            {
+                return sendError(eventFd, 403, "Forbidden");
+            }
         }
         else
         {
             return sendError(eventFd, 403, "Forbidden");
         }
-    }
-    else
-    {
-        return sendError(eventFd, 403, "Forbidden");
-    }
     }
     http_request.setURI(uri);
     http_request.setHeaders(http_request.parseHeaders(request));
@@ -591,7 +593,6 @@ static void ensureSessionFileExists(const std::string &sessionId, const std::vec
 
 void Server::handleDeleteRequest(int eventFd, const std::string &request)
 {
-    std::cerr << DEBUG_PREFIX << "DELETE request received" << std::endl;
     HTTPRequest http_request;
 
     std::string first_line = request.substr(0, request.find("\r\n"));
@@ -600,6 +601,8 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
         return sendError(eventFd, 400, "Bad Request");
     if (request_splitted[2].compare(GOOD_HTTP_VERSION))
         return sendError(eventFd, 505, "HTTP Version Not Supported");
+
+    std::cerr << DEBUG_PREFIX << "DELETE request [" << request_splitted[1] << "] received" << std::endl;
 
     std::string uri = request_splitted[1];
     std::string file_path = "www" + uri;
@@ -622,7 +625,7 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
     if (sessionId.empty())
         sessionId = "anonymous";
 
-    std::string keysArray[] = { "firstname", "lastname", "school" };
+    std::string keysArray[] = {"firstname", "lastname", "school"};
     std::vector<std::string> keys(keysArray, keysArray + 3);
     ensureSessionFileExists(sessionId, keys);
 }
