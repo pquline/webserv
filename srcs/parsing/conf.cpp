@@ -51,6 +51,39 @@ static std::string getLocationBlock(const std::string &block, size_t &index)
 	return (location_block);
 }
 
+static void parseMethods(const std::string &directive, std::vector<std::string> &methods)
+{
+    size_t index = std::string("methods").size();
+    size_t begin;
+
+    while (isspace(directive[index]))
+        index++;
+    while (index < directive.size())
+    {
+        begin = index;
+        while (index < directive.size() && !isspace(directive[index]))
+            index++;
+        std::string method = directive.substr(begin, index - begin);
+        for (size_t i = 0; i < method.size(); ++i) {
+            method[i] = static_cast<char>(toupper(static_cast<unsigned char>(method[i])));
+        }
+        methods.push_back(method);
+        while (isspace(directive[index]))
+            index++;
+    }
+    
+    std::cerr << DEBUG_PREFIX << "methods: [";
+    for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); it++)
+    {
+        std::vector<std::string>::const_iterator temp = ++it;
+        --it;
+        std::cerr << *it;
+        if (temp != methods.end())
+            std::cerr << ", ";
+    }
+    std::cerr << "]" << std::endl;
+}
+
 static std::string getServerBlock(const std::string &block, size_t &index)
 {
 	size_t begin;
@@ -306,6 +339,7 @@ static void parseLocation(const std::string &directive,
 	std::string root = "";
 	std::map<unsigned int, std::string> error_pages;
 	std::vector<std::string> indexes;
+	std::vector<std::string> methods;
 	size_t index = 0;
 
 	while (!isspace(directive[index]) && directive[index] != '{')
@@ -314,7 +348,6 @@ static void parseLocation(const std::string &directive,
 	while (isspace(directive[index]))
 		index++;
 	index += sizeof('{');
-	// std::cerr << COLOR_BLUE "[DEBUG]: LOCATION " << uri << COLOR_NONE << std::endl;
 	while (index < directive.size() && directive[index] != '}')
 	{
 		while (index < directive.size() && (isspace(directive[index]) || directive[index] == '}'))
@@ -330,12 +363,15 @@ static void parseLocation(const std::string &directive,
 			parseRoot(getDirective(directive, index), root);
 		else if (key == "error_page")
 			parseErrorPage(getDirective(directive, index), error_pages);
+		else if (key == "methods") // Nouveau: gestion des méthodes
+			parseMethods(getDirective(directive, index), methods);
 		else
 			throw std::invalid_argument(PARSING_UNEXPECTED);
 		index++;
 	}
-	locations[uri] = new Location(autoindex, root, error_pages, indexes);
+	locations[uri] = new Location(autoindex, root, error_pages, indexes, methods);
 }
+
 static void parseRedirection(const std::string &directive, std::map<std::string, std::string> &redirections)
 {
     size_t index = std::string("redirection").size();
@@ -346,7 +382,6 @@ static void parseRedirection(const std::string &directive, std::map<std::string,
     while (isspace(directive[index]))
         index++;
     
-    // Parse "from" path
     begin = index;
     while (index < directive.size() && !isspace(directive[index]))
         index++;
@@ -355,7 +390,6 @@ static void parseRedirection(const std::string &directive, std::map<std::string,
     while (isspace(directive[index]))
         index++;
     
-    // Parse "to" path
     begin = index;
     while (index < directive.size() && !isspace(directive[index]) && directive[index] != ';')
         index++;
@@ -377,7 +411,7 @@ Server *getServer(std::string data)
     std::vector<unsigned int> ports;
     std::map<unsigned int, std::string> error_pages;
     std::map<std::string, Location *> locations;
-    std::map<std::string, std::string> redirections; // Ajout de cette ligne
+    std::map<std::string, std::string> redirections;
 
     for (size_t index = 0; data[index]; (void)0)
     {
@@ -402,7 +436,7 @@ Server *getServer(std::string data)
                 parseErrorPage(getDirective(data, index), error_pages);
             else if (key == "location")
                 parseLocation(getLocationBlock(data, index), locations);
-            else if (key == "redirection") // Ajout de cette condition
+            else if (key == "redirection")
                 parseRedirection(getDirective(data, index), redirections);
             else
                 throw std::invalid_argument(PARSING_UNEXPECTED);
