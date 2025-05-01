@@ -13,7 +13,7 @@ int	main(int argc, char **argv)
 
 	if (argc > 2)
 	{
-		std::cout << ERROR_USAGE << std::endl;
+		std::cerr << ERROR_USAGE << std::endl;
 		return 0;
 	}
 	if (argc == 2)

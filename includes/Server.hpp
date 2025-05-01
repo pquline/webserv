@@ -30,12 +30,12 @@ class Server
 
 		void	handleError(const std::string& msg);
 		void	setNonBlocking(int fd);
-		void	parseRequest(int eventFd, ssize_t bytesRead,char *buffer);
-		void	handlePostRequest(int eventFd, std::string& request);
-		void	handleGetRequest(int eventFd, std::string& request);
-		void	handleDeleteRequest(int eventFd, std::string& request);
+		void	parseRequest(int eventFd, const std::string &request);
+		void	handlePostRequest(int eventFd, const std::string& request);
+		void	handleGetRequest(int eventFd, const std::string& request);
+		void	handleDeleteRequest(int eventFd, const std::string& request);
 		void	sendError(int fd, int code, const std::string& message);
-		void	callCGI(int eventFd, std::string& request);
+		void	callCGI(int eventFd, const std::string& request);
 		int		get_autoindex(void) const;
 		std::string	parseRequestTarget(const std::string& request);
 		std::string	getHeader(const std::string& request, const std::string& key);
@@ -48,7 +48,7 @@ class Server
 		Server(int autoindex, ssize_t max_body_size, std::string root, \
 				std::vector<std::string> hosts, std::vector<unsigned int> ports, \
 				std::map<unsigned int, std::string> error_pages, \
-				std::map<std::string, Location *> locations, 
+				std::map<std::string, Location *> locations,
 				std::map<std::string, std::string> redirections);
 		virtual ~Server ();
 
