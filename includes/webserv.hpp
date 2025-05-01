@@ -28,8 +28,6 @@
 #include <list>
 #include <set>
 #include <map>
-#include "Server.hpp"
-#include "Location.hpp"
 
 #define nullptr 0
 #define RED "\033[31m"
@@ -45,8 +43,9 @@
 #define ERASE = "\033[2K\r"
 #define RESET "\e[0m"
 
-#define DEBUG_PREFIX "[DEBUG]: "
-#define ERROR_PREFIX "[Error]: "
+#define DEBUG_PREFIX YELLOW BOLD "[DEBUG]: " RESET
+#define INFO_PREFIX BLUE BOLD "[INFO]: " RESET
+#define ERROR_PREFIX RED BOLD "[Error]: " RESET
 #define ERROR_USAGE "Usage: ./webserv [file.conf]"
 #define ERROR_OPEN "Cannot open "
 #define DEFAULT_CONF "webserv.conf"
@@ -76,3 +75,6 @@ void parseConfigurationFile(const std::string &file, std::vector<Server *> &serv
 std::string url_decode(const std::string &str);
 std::map<std::string, std::string> parse_url_encoded(const std::string &body);
 std::vector<std::string> ft_split(const std::string &str, char delimiter);
+
+#include "Server.hpp"
+#include "Location.hpp"

@@ -54,7 +54,7 @@ print(f"""<!DOCTYPE html>
 			</div>
 		</div>
         <div>
-            <a class="button" href="/index.html">Back to Home</a>
+            <a class="button" href="/index.html">Back</a>
         </div>
     </div>
 </body>

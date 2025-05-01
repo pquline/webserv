@@ -13,7 +13,7 @@ int	main(int argc, char **argv)
 
 	if (argc > 2)
 	{
-		std::cout << ERROR_USAGE << std::endl;
+		std::cerr << ERROR_USAGE << std::endl;
 		return 0;
 	}
 	if (argc == 2)
@@ -27,7 +27,7 @@ int	main(int argc, char **argv)
 	}
 	catch (const std::exception &e)
 	{
-		std::cerr << RED << ERROR_PREFIX << e.what() << RESET << std::endl;
+		std::cerr << ERROR_PREFIX << e.what() << std::endl;
 		if (!servers.empty())
 			deleteServers(servers);
 		return (EXIT_FAILURE);

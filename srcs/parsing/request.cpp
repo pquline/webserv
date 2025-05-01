@@ -23,7 +23,7 @@ static std::string getCookie(const std::string &request)
     return cookie;
 }
 
-void Server::handlePostRequest(int eventFd, std::string &request)
+void Server::handlePostRequest(int eventFd, const std::string &request)
 {
     HTTPRequest http_request;
 
@@ -41,7 +41,6 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         sendError(eventFd, 400, "Bad Request");
         return;
     }
-
     if (request_splitted[2].compare(GOOD_HTTP_VERSION) != 0)
     {
         sendError(eventFd, 505, "HTTP Version Not Supported");
@@ -84,16 +83,17 @@ void Server::handlePostRequest(int eventFd, std::string &request)
     std::string body = request.substr(header_end + 4, content_length);
     std::string content_type = http_request.getContentType();
 
+    std::cerr << DEBUG_PREFIX << "POST request received" << std::endl;
+
     if (content_type.find("application/x-www-form-urlencoded") != std::string::npos)
     {
         std::map<std::string, std::string> form_data = parse_url_encoded(body);
         std::string test = form_data["data"];
 
-        std::string response = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: text/plain\r\n"
-                               "\r\n"
-                               "Received data:" +
-                               test;
+        std::string response = "HTTP/1.1 303 See Other\r\n"
+                               "Location: /\r\n"
+                               "Content-Length: 0\r\n"
+                               "\r\n";
 
         send(eventFd, response.c_str(), response.size(), 0);
     }
@@ -188,10 +188,10 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         std::string cookiePath = "www/" + cookie + ".txt";
         saveMapToFile(form_data, cookiePath, eventFd);
 
-        std::string response = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: text/plain\r\n"
-                               "\r\n"
-                               "Received data:\n";
+        std::string response = "HTTP/1.1 303 See Other\r\n"
+                               "Location: /\r\n"
+                               "Content-Length: 0\r\n"
+                               "\r\n";
 
         std::map<std::string, std::string>::iterator it;
         for (it = form_data.begin(); it != form_data.end(); ++it)
@@ -206,23 +206,9 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 
         send(eventFd, response.c_str(), response.size(), 0);
     }
-    else if (content_type.find("text/plain") != std::string::npos)
-    {
-        std::string response = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: text/plain\r\n"
-                               "\r\n"
-                               "Received text data:\n" +
-                               body;
-
-        send(eventFd, response.c_str(), response.size(), 0);
-    }
-    else
-    {
-        sendError(eventFd, 415, "Unsupported Media Type");
-    }
 }
 
-void Server::callCGI(int eventFd, std::string &request)
+void Server::callCGI(int eventFd, const std::string &request)
 {
     std::string requestTarget = parseRequestTarget(request);
     std::string scriptPath = "www" + requestTarget;
@@ -286,7 +272,6 @@ void Server::callCGI(int eventFd, std::string &request)
         env_strings.push_back("SCRIPT_NAME=" + requestTarget);
         env_strings.push_back("QUERY_STRING=" + queryString);
         env_strings.push_back("HTTP_COOKIE=" + cookie);
-        std::cerr << cookie << std::endl;
         env_strings.push_back("PATH_INFO=");
         env_strings.push_back("PATH_TRANSLATED=");
         env_strings.push_back("REMOTE_ADDR=127.0.0.1");
@@ -335,21 +320,17 @@ void Server::callCGI(int eventFd, std::string &request)
             int ready = select(pipefd[0] + 1, &readfds, NULL, NULL, &tv);
             if (ready == -1)
             {
-                // Error in select
                 break;
             }
             else if (ready == 0)
             {
-                // Timeout
                 break;
             }
             else
             {
-                // Data available
                 n = read(pipefd[0], buffer, sizeof(buffer) - 1);
                 if (n <= 0)
                 {
-                    // End of file or error
                     break;
                 }
                 buffer[n] = '\0';
@@ -409,7 +390,7 @@ static std::string generateSessionId()
     return id;
 }
 
-void Server::handleGetRequest(int eventFd, std::string &request)
+void Server::handleGetRequest(int eventFd, const std::string &request)
 {
     HTTPRequest http_request;
 
@@ -436,9 +417,8 @@ void Server::handleGetRequest(int eventFd, std::string &request)
     }
     if (uri == "/")
     {
-        uri = "/index.html"; 
+        uri = "/index.html";
     }
-
     std::string _file_path = "www" + uri;
     struct stat path_stat;
     if (stat(_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
@@ -461,12 +441,10 @@ void Server::handleGetRequest(int eventFd, std::string &request)
             
             DIR *dir;
             struct dirent *ent;
-            
             if ((dir = opendir(dir_path.c_str())) != NULL)
             {
                 std::string html = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of " + uri + "</title>\n</head>\n";
                 html += "<body>\n<h1>Index of " + uri + "</h1>\n<hr>\n<ul>\n";
-                
                 if (uri != "/")
                 {
                     size_t last_slash = uri.substr(0, uri.length() - 1).find_last_of('/');
@@ -481,7 +459,6 @@ void Server::handleGetRequest(int eventFd, std::string &request)
                     
                     std::string full_path = dir_path + name;
                     struct stat statbuf;
-                    
                     if (stat(full_path.c_str(), &statbuf) == 0)
                     {
                         if (S_ISDIR(statbuf.st_mode))
@@ -495,8 +472,7 @@ void Server::handleGetRequest(int eventFd, std::string &request)
                         }
                     }
                 }
-                closedir(dir);
-                
+                closedir(dir); 
                 html += "</ul>\n<hr>\n</body>\n</html>";
                 
                 std::ostringstream sizeStream;
@@ -507,7 +483,7 @@ void Server::handleGetRequest(int eventFd, std::string &request)
                                       "Content-Type: text/html\r\n"
                                       "Content-Length: " + sizeStr + "\r\n"
                                       "\r\n" + html;
-                
+          
                 send(eventFd, response.c_str(), response.size(), 0);
                 return;
             }
@@ -569,6 +545,8 @@ void Server::handleGetRequest(int eventFd, std::string &request)
                 content_type = "text/plain";
         }
 
+        if (content_type != "text/css" && content_type != "text/plain" && content_type != "application/javascript" && content_type.find("image") == std::string::npos)
+            std::cerr << DEBUG_PREFIX << "GET [" << content_type << "] request received" << std::endl;
         std::ostringstream sizeStream;
         sizeStream << content.size();
         std::string sizeStr = sizeStream.str();
@@ -579,8 +557,6 @@ void Server::handleGetRequest(int eventFd, std::string &request)
         if (cookiePos != std::string::npos)
         {
             sessionID = getCookie(request);
-            std::cout << GREEN << "Welcome back my heroine!" << RESET << std::endl;
-            std::cout << "SessionID: " << sessionID << std::endl;
         }
         else
         {
@@ -591,12 +567,12 @@ void Server::handleGetRequest(int eventFd, std::string &request)
             std::ofstream cookieFile(cookiePath.c_str());
             if (!cookieFile)
             {
-                std::cerr << RED << "Failed to create cookie file: " << cookiePath << RESET << std::endl;
+                std::cerr << ERROR_PREFIX << "Failed to create cookie file: " << cookiePath << std::endl;
             }
             cookieFile << _cookies[sessionID];
             cookieFile.close();
 
-            std::cout << GREEN << "New Cookie generated!" << RESET << std::endl;
+            std::cerr << DEBUG_PREFIX << "New cookie generated" << RESET << std::endl;
         }
         std::string response = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: " +
@@ -609,7 +585,21 @@ void Server::handleGetRequest(int eventFd, std::string &request)
     }
 }
 
-void Server::handleDeleteRequest(int eventFd, std::string &request)
+static void ensureSessionFileExists(const std::string &sessionId, const std::vector<std::string> &expectedFields)
+{
+    std::string path = "www/" + sessionId + ".txt";
+    if (access(path.c_str(), F_OK) != 0)
+    {
+        std::ofstream file(path.c_str());
+        if (!file)
+            return;
+        for (size_t i = 0; i < expectedFields.size(); ++i)
+            file << expectedFields[i] << ": Unknown\n";
+        file.close();
+    }
+}
+
+void Server::handleDeleteRequest(int eventFd, const std::string &request)
 {
     HTTPRequest http_request;
 
@@ -619,6 +609,8 @@ void Server::handleDeleteRequest(int eventFd, std::string &request)
         return sendError(eventFd, 400, "Bad Request");
     if (request_splitted[2].compare(GOOD_HTTP_VERSION))
         return sendError(eventFd, 505, "HTTP Version Not Supported");
+
+    std::cerr << DEBUG_PREFIX << "DELETE request [" << request_splitted[1] << "] received" << std::endl;
 
     std::string uri = request_splitted[1];
     std::string file_path = "www" + uri;
@@ -636,12 +628,18 @@ void Server::handleDeleteRequest(int eventFd, std::string &request)
                            "Content-Length: 0\r\n"
                            "\r\n";
     send(eventFd, response.c_str(), response.size(), 0);
+
+    std::string sessionId = getCookie(request);
+    if (sessionId.empty())
+        sessionId = "anonymous";
+
+    std::string keysArray[] = {"firstname", "lastname", "school"};
+    std::vector<std::string> keys(keysArray, keysArray + 3);
+    ensureSessionFileExists(sessionId, keys);
 }
 
-void Server::parseRequest(int eventFd, ssize_t bytesRead, char *buffer)
+void Server::parseRequest(int eventFd, const std::string &request)
 {
-    std::string request(buffer, static_cast<size_t>(bytesRead));
-
     std::string first_line = request.substr(0, request.find("\r\n"));
     if (first_line.find("GET") != std::string::npos)
         Server::handleGetRequest(eventFd, request);
@@ -651,5 +649,4 @@ void Server::parseRequest(int eventFd, ssize_t bytesRead, char *buffer)
         Server::handleDeleteRequest(eventFd, request);
     else
         sendError(eventFd, 400, "Bad Request");
-    std::cerr << GRAY << buffer << RESET << std::endl;
-};
+}
