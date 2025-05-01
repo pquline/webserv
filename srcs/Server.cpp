@@ -50,7 +50,7 @@ void Server::init()
     std::cout << INFO_PREFIX "Server name(s): ";
     for (std::vector<std::string>::const_iterator it = _hosts.begin(); it != _hosts.end(); it++)
         std::cout << "[" YELLOW << *it << RESET "] ";
-    std::cout << "\n" INFO_PREFIX GREEN "http://localhost:" << *_ports.begin() << "..." << RESET << std::endl;
+    std::cout << "\n" INFO_PREFIX GREEN "http://localhost:" << *_ports.begin() << RESET << std::endl;
 }
 
 static bool isCompleteRequest(const std::string& req, size_t& bodySize)
