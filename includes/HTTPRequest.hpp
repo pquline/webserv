@@ -21,7 +21,7 @@ class HTTPRequest
 		bool getHasBody() const { return (_hasBody); };
 		size_t getContentLength() const { return (_contentLength); };
 		std::map<std::string, std::string> getHeaders() const { return (_headers); };
-		
+
 		void setContentType(const std::string &type) { _contentType = type; };
 		void setMethod(const std::string &m) { _method = m; };
 		void setURI(const std::string &u) { _uri = u; };
@@ -30,5 +30,5 @@ class HTTPRequest
 		void setContentLength(size_t length) { _contentLength = length; };
 
 		void setHeaders(const std::map<std::string, std::string>& headers);
-		std::map<std::string, std::string> parseHeaders(std::string &request);
+		std::map<std::string, std::string> parseHeaders(const std::string &request);
 };

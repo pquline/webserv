@@ -38,7 +38,7 @@ void HTTPRequest::setHeaders(const std::map<std::string, std::string>& headers)
 	}
 }
 
-std::map<std::string, std::string> HTTPRequest::parseHeaders(std::string &request)
+std::map<std::string, std::string> HTTPRequest::parseHeaders(const std::string &request)
 {
 	std::map<std::string, std::string> headers;
 

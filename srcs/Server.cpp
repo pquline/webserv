@@ -53,6 +53,31 @@ void Server::init()
     std::cout << "\n" INFO_PREFIX GREEN "http://localhost:" << *_ports.begin() << "..." << RESET << std::endl;
 }
 
+static bool isCompleteRequest(const std::string& req, size_t& bodySize)
+{
+    size_t headerEnd = req.find("\r\n\r\n");
+    if (headerEnd == std::string::npos) {
+        return false;
+    }
+
+    std::string headers = req.substr(0, headerEnd);
+
+    if (headers.find("Content-Length:") != std::string::npos)
+    {
+        size_t pos = headers.find("Content-Length:");
+        size_t end = headers.find("\r\n", pos);
+        std::string contentLengthStr = headers.substr(pos + 15, end - pos - 15);
+        int contentLength = std::atoi(contentLengthStr.c_str());
+
+        bodySize = static_cast<size_t>(contentLength);
+        size_t totalExpectedSize = headerEnd + 4 + bodySize;
+
+        return req.size() >= totalExpectedSize;
+    }
+
+    return true;
+}
+
 void Server::run()
 {
     signal(SIGINT, handle_sigint);
@@ -67,19 +92,23 @@ void Server::run()
     if (epoll_ctl(epollFd, EPOLL_CTL_ADD, m_serverFd, &ev) < 0)
         handleError("epoll_ctl: server socket");
 
-    int nfds, connFd;
+    std::map<int, std::string> requestBuffer;
+
     while (true)
     {
-        nfds = epoll_wait(epollFd, events, MAX_EVENT, 1000);
+        int nfds = epoll_wait(epollFd, events, MAX_EVENT, 1000);
         if (nfds < 0)
         {
             if (g_sig)
             {
-                std::cerr << "\n" DEBUG_PREFIX RED "SIGINT received, servers shutting down..." RESET << std::endl;
+                std::cerr << "\n"
+                          << DEBUG_PREFIX << "SIGINT received, servers shutting down..." << std::endl;
                 break;
             }
             else
+            {
                 handleError("epoll_wait");
+            }
         }
 
         for (int i = 0; i < nfds; i++)
@@ -89,34 +118,44 @@ void Server::run()
             if (eventFd == m_serverFd)
             {
                 m_addressLen = sizeof(m_address);
-                connFd = accept(m_serverFd, (struct sockaddr *)&m_address, &m_addressLen);
+                int connFd = accept(m_serverFd, (struct sockaddr *)&m_address, &m_addressLen);
                 if (connFd < 0)
                     handleError("accept");
+
                 setNonBlocking(connFd);
-                ev.events = EPOLLIN | EPOLLET;
+                ev.events = EPOLLIN;
                 ev.data.fd = connFd;
+
                 if (epoll_ctl(epollFd, EPOLL_CTL_ADD, connFd, &ev) < 0)
                     handleError("epoll_ctl: client socket");
             }
             else
             {
-
-                char buffer[900000] = {0};
-                ssize_t bytesRead = read(eventFd, buffer, 900000 - 1);
+                char buffer[BUFFER_SIZE] = {0};
+                ssize_t bytesRead = read(eventFd, buffer, BUFFER_SIZE);
 
                 if (bytesRead <= 0)
                 {
+                    requestBuffer.erase(eventFd);
                     close(eventFd);
                     epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
                     continue;
                 }
-                Server::parseRequest(eventFd, bytesRead, buffer);
 
-                close(eventFd);
-                epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
+                requestBuffer[eventFd] += std::string(buffer, static_cast<size_t>(bytesRead));
+
+                size_t bodySize = 0;
+                if (isCompleteRequest(requestBuffer[eventFd], bodySize))
+                {
+                    Server::parseRequest(eventFd, requestBuffer[eventFd]);
+                    requestBuffer.erase(eventFd);
+                    close(eventFd);
+                    epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
+                }
             }
         }
     }
+
     close(epollFd);
 }
 
@@ -170,7 +209,7 @@ void Server::sendError(int fd, int code, const std::string &message)
         body = generateErrorPage(code, message);
     std::ostringstream response;
 
-    std::cerr << BLUE ERROR_PREFIX << code << " " << message << RESET << std::endl;
+    std::cerr << ERROR_PREFIX << code << " " << message << std::endl;
     response << "HTTP/1.1 " << code << " " << message << "\r\n"
              << "Content-Type: text/html\r\n"
              << "Content-Length: " << body.size() << "\r\n"
@@ -192,9 +231,6 @@ void Server::setNonBlocking(int fd)
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1)
         handleError("fcntl F_GETFL");
-
-    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-        handleError("fcntl F_SETFL");
     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
         handleError("fcntl F_SETFL");
 }

@@ -23,9 +23,9 @@ static std::string getCookie(const std::string &request)
     return cookie;
 }
 
-void Server::handlePostRequest(int eventFd, std::string &request)
+void Server::handlePostRequest(int eventFd, const std::string &request)
 {
-    std::cerr << "[TEST]: handlePostRequest();" << std::endl;
+    std::cerr << DEBUG_PREFIX << "POST request received" << std::endl;
     HTTPRequest http_request;
 
     size_t header_end = request.find("\r\n\r\n");
@@ -42,7 +42,6 @@ void Server::handlePostRequest(int eventFd, std::string &request)
         sendError(eventFd, 400, "Bad Request");
         return;
     }
-
     if (request_splitted[2].compare(GOOD_HTTP_VERSION) != 0)
     {
         sendError(eventFd, 505, "HTTP Version Not Supported");
@@ -209,7 +208,7 @@ void Server::handlePostRequest(int eventFd, std::string &request)
     }
 }
 
-void Server::callCGI(int eventFd, std::string &request)
+void Server::callCGI(int eventFd, const std::string &request)
 {
     std::string requestTarget = parseRequestTarget(request);
     std::string scriptPath = "www" + requestTarget;
@@ -273,7 +272,6 @@ void Server::callCGI(int eventFd, std::string &request)
         env_strings.push_back("SCRIPT_NAME=" + requestTarget);
         env_strings.push_back("QUERY_STRING=" + queryString);
         env_strings.push_back("HTTP_COOKIE=" + cookie);
-        std::cerr << cookie << std::endl;
         env_strings.push_back("PATH_INFO=");
         env_strings.push_back("PATH_TRANSLATED=");
         env_strings.push_back("REMOTE_ADDR=127.0.0.1");
@@ -322,21 +320,17 @@ void Server::callCGI(int eventFd, std::string &request)
             int ready = select(pipefd[0] + 1, &readfds, NULL, NULL, &tv);
             if (ready == -1)
             {
-                // Error in select
                 break;
             }
             else if (ready == 0)
             {
-                // Timeout
                 break;
             }
             else
             {
-                // Data available
                 n = read(pipefd[0], buffer, sizeof(buffer) - 1);
                 if (n <= 0)
                 {
-                    // End of file or error
                     break;
                 }
                 buffer[n] = '\0';
@@ -396,7 +390,7 @@ static std::string generateSessionId()
     return id;
 }
 
-void Server::handleGetRequest(int eventFd, std::string &request)
+void Server::handleGetRequest(int eventFd, const std::string &request)
 {
     HTTPRequest http_request;
 
@@ -423,7 +417,7 @@ void Server::handleGetRequest(int eventFd, std::string &request)
     }
     if (uri == "/")
     {
-        uri = "/index.html"; // Fichier par défaut
+        uri = "/index.html";
     }
     http_request.setURI(uri);
     http_request.setHeaders(http_request.parseHeaders(request));
@@ -473,6 +467,8 @@ void Server::handleGetRequest(int eventFd, std::string &request)
                 content_type = "text/plain";
         }
 
+        if (content_type != "text/css" && content_type != "text/plain" && content_type != "application/javascript" && content_type.find("image") == std::string::npos)
+            std::cerr << DEBUG_PREFIX << "GET [" << content_type << "] request received" << std::endl;
         std::ostringstream sizeStream;
         sizeStream << content.size();
         std::string sizeStr = sizeStream.str();
@@ -483,7 +479,6 @@ void Server::handleGetRequest(int eventFd, std::string &request)
         if (cookiePos != std::string::npos)
         {
             sessionID = getCookie(request);
-            std::cerr << DEBUG_PREFIX "SESSIONID=" << sessionID << std::endl;
         }
         else
         {
@@ -512,8 +507,23 @@ void Server::handleGetRequest(int eventFd, std::string &request)
     }
 }
 
-void Server::handleDeleteRequest(int eventFd, std::string &request)
+static void ensureSessionFileExists(const std::string &sessionId, const std::vector<std::string> &expectedFields)
 {
+    std::string path = "www/" + sessionId + ".txt";
+    if (access(path.c_str(), F_OK) != 0)
+    {
+        std::ofstream file(path.c_str());
+        if (!file)
+            return;
+        for (size_t i = 0; i < expectedFields.size(); ++i)
+            file << expectedFields[i] << ": Unknown\n";
+        file.close();
+    }
+}
+
+void Server::handleDeleteRequest(int eventFd, const std::string &request)
+{
+    std::cerr << DEBUG_PREFIX << "DELETE request received" << std::endl;
     HTTPRequest http_request;
 
     std::string first_line = request.substr(0, request.find("\r\n"));
@@ -539,12 +549,18 @@ void Server::handleDeleteRequest(int eventFd, std::string &request)
                            "Content-Length: 0\r\n"
                            "\r\n";
     send(eventFd, response.c_str(), response.size(), 0);
+
+    std::string sessionId = getCookie(request);
+    if (sessionId.empty())
+        sessionId = "anonymous";
+
+    std::string keysArray[] = { "firstname", "lastname", "school" };
+    std::vector<std::string> keys(keysArray, keysArray + 3);
+    ensureSessionFileExists(sessionId, keys);
 }
 
-void Server::parseRequest(int eventFd, ssize_t bytesRead, char *buffer)
+void Server::parseRequest(int eventFd, const std::string &request)
 {
-    std::string request(buffer, static_cast<size_t>(bytesRead));
-
     std::string first_line = request.substr(0, request.find("\r\n"));
     if (first_line.find("GET") != std::string::npos)
         Server::handleGetRequest(eventFd, request);
@@ -554,5 +570,4 @@ void Server::parseRequest(int eventFd, ssize_t bytesRead, char *buffer)
         Server::handleDeleteRequest(eventFd, request);
     else
         sendError(eventFd, 400, "Bad Request");
-    std::cerr << GRAY << buffer << RESET << std::endl;
-};
+}

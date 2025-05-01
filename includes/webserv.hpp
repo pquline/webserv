@@ -44,7 +44,7 @@
 
 #define DEBUG_PREFIX YELLOW BOLD "[DEBUG]: " RESET
 #define INFO_PREFIX BLUE BOLD "[INFO]: " RESET
-#define ERROR_PREFIX "[Error]: "
+#define ERROR_PREFIX RED BOLD "[Error]: " RESET
 #define ERROR_USAGE "Usage: ./webserv [file.conf]"
 #define ERROR_OPEN "Cannot open "
 #define DEFAULT_CONF "webserv.conf"
