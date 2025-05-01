@@ -436,7 +436,77 @@ void Server::handleGetRequest(int eventFd, std::string &request)
     }
     if (uri == "/")
     {
-        uri = "/index.html"; // Fichier par défaut
+        uri = "/index.html"; 
+    }
+    if (uri[uri.length() - 1] == '/')
+    {
+    std::cerr << "[DEBUG AUTOINDEX]: " << _autoindex << std::endl;
+    if (_autoindex)
+    {
+        std::string dir_path = "www" + uri;
+        std::cerr << "[DEBUG]: " << dir_path << std::endl;
+        
+        DIR *dir;
+        struct dirent *ent;
+        
+        if ((dir = opendir(dir_path.c_str())) != NULL)
+        {
+            std::string html = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of " + uri + "</title>\n</head>\n";
+            html += "<body>\n<h1>Index of " + uri + "</h1>\n<hr>\n<ul>\n";
+            
+            if (uri != "/")
+            {
+                size_t last_slash = uri.substr(0, uri.length() - 1).find_last_of('/');
+                std::string parent_path = uri.substr(0, last_slash + 1);
+                html += "<li><a href=\"" + parent_path + "\">../</a></li>\n";
+            }
+            
+            while ((ent = readdir(dir)) != NULL)
+            {
+                std::string name = ent->d_name;
+                if (name == "." || name == "..") continue;
+                
+                std::string full_path = dir_path + name;
+                struct stat statbuf;
+                
+                if (stat(full_path.c_str(), &statbuf) == 0)
+                {
+                    if (S_ISDIR(statbuf.st_mode))
+                    {
+                        name += "/";
+                        html += "<li><a href=\"" + uri + name + "\">" + name + "</a></li>\n";
+                    }
+                    else
+                    {
+                        html += "<li><a href=\"" + uri + name + "\">" + name + "</a></li>\n";
+                    }
+                }
+            }
+            closedir(dir);
+            
+            html += "</ul>\n<hr>\n</body>\n</html>";
+            
+            std::ostringstream sizeStream;
+            sizeStream << html.size();
+            std::string sizeStr = sizeStream.str();
+            
+            std::string response = "HTTP/1.1 200 OK\r\n"
+                                  "Content-Type: text/html\r\n"
+                                  "Content-Length: " + sizeStr + "\r\n"
+                                  "\r\n" + html;
+            
+            send(eventFd, response.c_str(), response.size(), 0);
+            return;
+        }
+        else
+        {
+            return sendError(eventFd, 403, "Forbidden");
+        }
+    }
+    else
+    {
+        return sendError(eventFd, 403, "Forbidden");
+    }
     }
     http_request.setURI(uri);
     http_request.setHeaders(http_request.parseHeaders(request));
