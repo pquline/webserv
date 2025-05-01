@@ -453,9 +453,8 @@ void Server::handleGetRequest(int eventFd, std::string &request)
             return;
         }
 
-        // Gestion de l'autoindex pour les répertoires avec /
         std::cerr << "[DEBUG AUTOINDEX]: " << _autoindex << std::endl;
-        if (_autoindex)
+        if ()
         {
             std::string dir_path = "www" + uri;
             std::cerr << "[DEBUG]: " << dir_path << std::endl;
