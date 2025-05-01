@@ -434,7 +434,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         }
 
         std::cerr << "[DEBUG AUTOINDEX]: " << _autoindex << std::endl;
-        if ()
+        if (_autoindex)
         {
             std::string dir_path = "www" + uri;
             std::cerr << "[DEBUG]: " << dir_path << std::endl;
