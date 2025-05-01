@@ -6,6 +6,56 @@
     <title>Edit My Information</title>
     <link rel="icon" href="/favicon.ico" />
     <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Edit My Information</h1>
+      <form
+        id="infoForm"
+        action="/"
+        method="POST"
+        enctype="multipart/form-data"
+      >
+        <div class="form-group">
+          <label for="nom">First Name:</label>
+          <input type="text" id="firstname" name="firstname" required />
+        </div>
+
+        <div class="form-group">
+          <label for="prenom">Last Name:</label>
+          <input type="text" id="lastname" name="lastname" required />
+        </div>
+
+        <div class="form-group">
+          <label for="school">School:</label>
+          <input type="text" id="school" name="school" required />
+        </div>
+
+        <div class="form-group">
+          <label for="photo">Profile Picture:</label>
+          <input
+            type="file"
+            id="photo"
+            name="photo"
+            accept="image/*"
+            required
+          />
+          <img id="preview" class="preview" alt="Image preview" />
+        </div>
+
+        <div class="button-container">
+          <button
+            type="button"
+            class="button edit"
+            onclick="window.history.back()"
+          >
+            Back
+          </button>
+          <button type="submit" class="button edit">Send</button>
+        </div>
+      </form>
+    </div>
     <script>
       function getSessionId() {
         const cookies = document.cookie.split(";");
@@ -46,49 +96,5 @@
         }
       });
     </script>
-  </head>
-
-  <body>
-    <div class="container">
-      <h1>Edit My Information</h1>
-      <form
-        id="infoForm"
-        action="/"
-        method="POST"
-        enctype="multipart/form-data"
-      >
-        <div class="form-group">
-          <label for="nom">First Name:</label>
-          <input type="text" id="firstname" name="firstname" required />
-        </div>
-
-        <div class="form-group">
-          <label for="prenom">Last Name:</label>
-          <input type="text" id="lastname" name="lastname" required />
-        </div>
-
-        <div class="form-group">
-          <label for="school">School:</label>
-          <input type="text" id="school" name="school" required />
-        </div>
-
-        <div class="form-group">
-          <label for="photo">Profile Picture:</label>
-          <input type="file" id="photo" name="photo" accept="image/*" required />
-          <img id="preview" class="preview" alt="Image preview" />
-        </div>
-
-        <div class="button-container">
-          <button
-            type="button"
-            class="button edit"
-            onclick="window.history.back()"
-          >
-            Back
-          </button>
-          <button type="submit" class="button edit">Send</button>
-        </div>
-      </form>
-    </div>
   </body>
 </html>
