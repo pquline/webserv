@@ -52,6 +52,8 @@
 
       function updateWelcomeMessage(firstName) {
         const h1 = document.querySelector("h1");
+        if (firstName == "Unknown")
+            firstName = None;
         h1.textContent = `Welcome, ${firstName || "new adventurer"}!`;
       }
 
