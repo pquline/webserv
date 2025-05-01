@@ -83,16 +83,17 @@ void Server::handlePostRequest(int eventFd, const std::string &request)
     std::string body = request.substr(header_end + 4, content_length);
     std::string content_type = http_request.getContentType();
 
+    std::cerr << DEBUG_PREFIX << "POST request received" << std::endl;
+
     if (content_type.find("application/x-www-form-urlencoded") != std::string::npos)
     {
         std::map<std::string, std::string> form_data = parse_url_encoded(body);
         std::string test = form_data["data"];
 
-        std::string response = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: text/plain\r\n"
-                               "\r\n"
-                               "Received data:" +
-                               test;
+        std::string response = "HTTP/1.1 303 See Other\r\n"
+                               "Location: /\r\n"
+                               "Content-Length: 0\r\n"
+                               "\r\n";
 
         send(eventFd, response.c_str(), response.size(), 0);
     }
@@ -187,10 +188,10 @@ void Server::handlePostRequest(int eventFd, const std::string &request)
         std::string cookiePath = "www/" + cookie + ".txt";
         saveMapToFile(form_data, cookiePath, eventFd);
 
-        std::string response = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: text/plain\r\n"
-                               "\r\n"
-                               "Received data:\n";
+        std::string response = "HTTP/1.1 303 See Other\r\n"
+                               "Location: /\r\n"
+                               "Content-Length: 0\r\n"
+                               "\r\n";
 
         std::map<std::string, std::string>::iterator it;
         for (it = form_data.begin(); it != form_data.end(); ++it)
