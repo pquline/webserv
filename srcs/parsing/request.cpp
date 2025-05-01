@@ -398,7 +398,6 @@ static std::string generateSessionId()
 void Server::handleGetRequest(int eventFd, std::string &request)
 {
     HTTPRequest http_request;
-
     std::string first_line = request.substr(0, request.find("\r\n"));
     std::vector<std::string> request_splitted = ft_split(first_line, ' ');
     if (request_splitted.size() != 3)

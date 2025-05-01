@@ -25,19 +25,13 @@ class Server
 		std::map<std::string, std::string>	_cookies;
 		std::map<std::string, std::string> _redirections;
 
-		void	handleError(const std::string& msg);
-		void	setNonBlocking(int fd);
-		void	parseRequest(int eventFd, ssize_t bytesRead,char *buffer);
 		void	handlePostRequest(int eventFd, std::string& request);
 		void	handleGetRequest(int eventFd, std::string& request);
 		void	handleDeleteRequest(int eventFd, std::string& request);
 		void	sendError(int fd, int code, const std::string& message);
 		void	callCGI(int eventFd, std::string& request);
-		int		get_autoindex(void) const;
 		std::string	parseRequestTarget(const std::string& request);
 		std::string	getHeader(const std::string& request, const std::string& key);
-		const std::map<std::string, std::string> &getRedirections() const;
-		const std::map<unsigned int, std::string> &getErrorPages() const;
 
 
 	public:
@@ -51,4 +45,10 @@ class Server
 
 		void	init();
 		void	run();
+		int		get_autoindex(void) const;
+		const std::map<std::string, std::string> &getRedirections() const;
+		const std::map<unsigned int, std::string> &getErrorPages() const;
+		const std::vector<unsigned int> getServerFds() const;
+		static void	setNonBlocking(int fd);
+		void	parseRequest(int eventFd, ssize_t bytesRead,char *buffer);
 };

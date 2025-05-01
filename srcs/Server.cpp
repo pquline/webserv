@@ -1,13 +1,5 @@
 #include "Server.hpp"
 
-volatile sig_atomic_t g_sig = 0;
-
-static void handle_sigint(int signal)
-{
-    if (signal == SIGINT)
-        g_sig = 1;
-}
-
 Server::Server(int autoindex, ssize_t max_body_size, std::string root, std::vector<std::string> hosts, std::vector<unsigned int> ports, std::map<unsigned int, std::string> error_pages, std::map<std::string, Location *> locations, std::map<std::string, std::string> redirections) : _autoindex(autoindex), _max_body_size(max_body_size), _root(root), _hosts(hosts), _ports(ports), _error_pages(error_pages), _locations(locations), _redirections(redirections)
 {
     if (_max_body_size == UNSET)
@@ -36,9 +28,9 @@ Server::~Server()
 void Server::init()
 {
 	for (size_t i = 0; i < _ports.size(); ++i) {
-		int serverFd = socket(AF_INET, SOCK_STREAM, 0);
+		int serverFd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 		if (serverFd == -1)
-			handleError("Socket creation failed");
+			throw std::runtime_error("Socket creation failed");
 
 		struct sockaddr_in addr;
 		memset(&addr, 0, sizeof(addr));
@@ -47,81 +39,14 @@ void Server::init()
 		addr.sin_port = htons(static_cast<uint16_t>(_ports[i]));
 
 		if (bind(serverFd, (struct sockaddr *)(&addr), sizeof(addr)) < 0)
-			handleError("Binding failed");
+			throw std::runtime_error("Binding failed");
 
 		if (listen(serverFd, 10) < 0)
-			handleError("Listening failed");
+			throw std::runtime_error("Listening failed");
 
 		_serverFds.push_back(serverFd);
 		std::cout << GREEN << "http://localhost:" << _ports[i] << "..." << RESET << std::endl;
 	}
-}
-
-void Server::run()
-{
-	signal(SIGINT, handle_sigint);
-	int epollFd = epoll_create1(0);
-	if (epollFd < 0)
-		handleError("epoll_create1 failed");
-
-	struct epoll_event ev, events[MAX_EVENT];
-	ev.events = EPOLLIN;
-	ev.data.fd = m_serverFd;
-
-	if (epoll_ctl(epollFd, EPOLL_CTL_ADD, m_serverFd, &ev) < 0)
-		handleError("epoll_ctl: server socket");
-
-	int nfds, connFd;
-	while (true)
-	{
-		nfds = epoll_wait(epollFd, events, MAX_EVENT, 1000);
-		if (nfds < 0)
-		{
-			if (g_sig)
-			{
-				std::cout << GREEN << "\nSIGINT received, servers shutting down..." << RESET << std::endl;
-				break;
-			}
-			else
-				handleError("epoll_wait");
-		}
-
-		for (int i = 0; i < nfds; i++)
-		{
-			int eventFd = events[i].data.fd;
-
-			if (eventFd == m_serverFd)
-			{
-				m_addressLen = sizeof(m_address);
-				connFd = accept(m_serverFd, (struct sockaddr *)&m_address, &m_addressLen);
-				if (connFd < 0)
-					handleError("accept");
-				setNonBlocking(connFd);
-				ev.events = EPOLLIN | EPOLLET;
-				ev.data.fd = connFd;
-				if (epoll_ctl(epollFd, EPOLL_CTL_ADD, connFd, &ev) < 0)
-					handleError("epoll_ctl: client socket");
-			}
-			else
-			{
-
-				char buffer[900000] = {0};
-				ssize_t bytesRead = read(eventFd, buffer, 900000 - 1);
-
-				if (bytesRead <= 0)
-				{
-					close(eventFd);
-					epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
-					continue;
-				}
-				Server::parseRequest(eventFd, bytesRead, buffer);
-
-				close(eventFd);
-				epoll_ctl(epollFd, EPOLL_CTL_DEL, eventFd, NULL);
-			}
-		}
-	}
-	close(epollFd);
 }
 
 static std::string generateErrorPage(int code, const std::string &message)
@@ -183,24 +108,16 @@ void Server::sendError(int fd, int code, const std::string &message)
 	send(fd, response.str().c_str(), response.str().size(), 0);
 }
 
-void Server::handleError(const std::string &msg)
-{
-	std::cerr << RED << msg << ": " << std::strerror(errno) << RESET << std::endl;
-	for (size_t i = 0; i < _serverFds.size(); i++)
-		close(_serverFds[i]);
-	exit(EXIT_FAILURE);
-}
-
 void Server::setNonBlocking(int fd)
 {
 	int flags = fcntl(fd, F_GETFL, 0);
 	if (flags == -1)
-		handleError("fcntl F_GETFL");
+		throw std::runtime_error("fcntl F_GETFL");
 
 	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-		handleError("fcntl F_SETFL");
+		throw std::runtime_error("fcntl F_SETFL");
 	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-		handleError("fcntl F_SETFL");
+		throw std::runtime_error("fcntl F_SETFL");
 }
 
 int Server::get_autoindex(void) const
@@ -234,4 +151,9 @@ const std::map<std::string, std::string> &Server::getRedirections() const
 const std::map<unsigned int, std::string> &Server::getErrorPages() const
 {
 	return _error_pages;
+}
+
+const std::vector<unsigned int> Server::getServerFds() const
+{
+	return _serverFds;
 }
