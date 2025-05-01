@@ -30,7 +30,7 @@ Server::~Server()
              it != _locations.end(); it++)
             delete (it->second);
     }
-    std::cout << "Server shut down." << std::endl;
+    std::cerr << INFO_PREFIX "Server shut down" << std::endl;
 }
 
 void Server::init()
@@ -47,10 +47,10 @@ void Server::init()
 
     if (listen(m_serverFd, 10) < 0)
         handleError("Listening failed");
-    std::cout << "Server name(s): ";
+    std::cout << INFO_PREFIX "Server name(s): ";
     for (std::vector<std::string>::const_iterator it = _hosts.begin(); it != _hosts.end(); it++)
         std::cout << "[" YELLOW << *it << RESET "] ";
-    std::cout << GREEN "\nhttp://localhost:" << *_ports.begin() << "..." << RESET << std::endl;
+    std::cout << "\n" INFO_PREFIX GREEN "http://localhost:" << *_ports.begin() << "..." << RESET << std::endl;
 }
 
 void Server::run()
@@ -75,7 +75,7 @@ void Server::run()
         {
             if (g_sig)
             {
-                std::cout << GREEN << "\nSIGINT received, servers shutting down..." << RESET << std::endl;
+                std::cerr << "\n" DEBUG_PREFIX RED "SIGINT received, servers shutting down..." RESET << std::endl;
                 break;
             }
             else

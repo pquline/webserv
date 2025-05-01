@@ -25,6 +25,7 @@ static std::string getCookie(const std::string &request)
 
 void Server::handlePostRequest(int eventFd, std::string &request)
 {
+    std::cerr << "[TEST]: handlePostRequest();" << std::endl;
     HTTPRequest http_request;
 
     size_t header_end = request.find("\r\n\r\n");
@@ -482,8 +483,7 @@ void Server::handleGetRequest(int eventFd, std::string &request)
         if (cookiePos != std::string::npos)
         {
             sessionID = getCookie(request);
-            std::cout << GREEN << "Welcome back my heroine!" << RESET << std::endl;
-            std::cout << "SessionID: " << sessionID << std::endl;
+            std::cerr << DEBUG_PREFIX "SESSIONID=" << sessionID << std::endl;
         }
         else
         {
@@ -499,7 +499,7 @@ void Server::handleGetRequest(int eventFd, std::string &request)
             cookieFile << _cookies[sessionID];
             cookieFile.close();
 
-            std::cout << GREEN << "New Cookie generated!" << RESET << std::endl;
+            std::cerr << DEBUG_PREFIX << "New cookie generated" << RESET << std::endl;
         }
         std::string response = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: " +
