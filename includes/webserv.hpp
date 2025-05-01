@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <csignal>
 #include <climits>
+#include <dirent.h>
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
