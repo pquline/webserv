@@ -175,7 +175,7 @@ static std::string generateErrorPage(int code, const std::string &message)
          << "        <h1>" << code << "</h1>\n"
          << "        <p class=\"error-message\">" << message << "</p>\n"
          << "        <div class=\"button-container-2\">\n"
-         << "            <a class=\"button\" href=\"/index.html\">Back to Home</a>\n"
+         << "            <a class=\"button\" href=\"/index.html\">Back</a>\n"
          << "        </div>\n"
          << "    </div>\n"
          << "</body>\n"

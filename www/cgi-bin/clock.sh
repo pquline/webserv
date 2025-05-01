@@ -38,7 +38,7 @@ cat <<'EOF'
 		<div class="date" id="date"></div>
 		<div class="digital-clock" id="clock"></div>
 		<div class="button-container-2">
-			<a class="button" href="/index.html">Back to Home</a>
+			<a class="button" href="/index.html">Back</a>
 		</div>
     </div>
 
