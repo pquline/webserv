@@ -1,126 +1,85 @@
-# Webserv Implementation Status
+# 🚀 WebServ
 
-## Core Requirements Status
+A lightning-fast ⚡ custom HTTP server implementation in C++98, designed to handle HTTP requests and serve web content with style! 🎨
 
-### ✅ Implemented Features
-1. Configuration File Support
-   - Takes configuration file as argument
-   - Default configuration path if none provided
-   - NGINX-style configuration parsing
+## ✨ Features
 
-2. Non-blocking Server
-   - Uses epoll for I/O operations
-   - Single poll() for all I/O operations
-   - Proper client disconnection handling
+- 🎯 Multi-server configuration support
+- 🛠️ Configurable server blocks with multiple locations
+- 🔄 Support for GET, POST, and DELETE methods
+- 🐍 CGI script execution
+- 📂 Auto-indexing for directories
+- ❌ Custom error pages
+- 📏 Client body size limits
+- 🌐 Server name and alias support
+- 🔀 Redirection support
 
-3. HTTP Methods
-   - GET method implementation
-   - POST method implementation
-   - DELETE method implementation with proper error handling
+## 📋 Requirements
 
-4. CGI Support
-   - Basic CGI execution framework
-   - Support for multiple interpreters (Python, PHP, Perl, Shell)
-   - Environment variable setup
-   - Input/output handling
-   - User information management (create, read, delete)
+- 🛠️ C++98 compatible compiler
+- 🔧 Make
+- 🐧 Linux/Unix environment
 
-5. File Operations
-   - Static file serving
-   - Basic file upload support
-   - Content-type detection
-   - File deletion support
-   - User profile management (info and pictures)
+## 🏗️ Building the Project
 
-### 🚧 Partially Implemented Features
-1. Session Management
-   - No current implementation
-   - Need to add cookie support
-   - Need to implement session tracking
+```bash
+# Build the project
+make
 
-2. Multiple CGI Support
-   - Basic framework exists
-   - Need to improve error handling
-   - Need to add support for more CGI types
+# Build with debug flags
+make debug
 
-### ❌ Missing Features
-1. Cookie Support
-   - Need to implement cookie parsing
-   - Need to add cookie generation
-   - Need to implement cookie storage
+# Clean object files
+make clean
 
-2. Session Management
-   - Need to implement session creation
-   - Need to add session storage
-   - Need to implement session expiration
+# Clean everything and rebuild
+make re
+```
 
-3. Directory Listing
-   - Need to implement autoindex feature
-   - Need to add proper HTML generation for directory listings
+## ⚙️ Configuration
 
-4. Error Pages
-   - Need to implement custom error page support
-   - Need to add default error pages for all HTTP status codes
+The server is configured using a configuration file (`webserv.conf`). Here's an example configuration:
 
-5. HTTP Redirect
-   - Need to implement redirect functionality
-   - Need to add support for different redirect types (301, 302, etc.)
+```nginx
+server {
+    listen 8080;
+    client_max_body_size 80000000;
+    server_name example.com;
+    root ./www/;
+    autoindex on;
 
-## Implementation Tasks
+    location / {
+        index index.html;
+        methods GET POST DELETE;
+    }
+}
+```
 
-### High Priority
-1. Cookie Support
-   - Implement cookie parsing in HTTPRequest class
-   - Add cookie generation in Response class
-   - Create cookie storage mechanism
-   - Add cookie validation
+### 🔧 Configuration Options
 
-2. Session Management
-   - Design session data structure
-   - Implement session creation and storage
-   - Add session expiration handling
-   - Create session cleanup mechanism
+- 🎧 `listen`: Port number(s) to listen on
+- 📦 `client_max_body_size`: Maximum size of client request body
+- 🌐 `server_name`: Server name and optional aliases
+- 📁 `root`: Root directory for serving files
+- 📂 `autoindex`: Enable/disable directory listing
+- 🔄 `methods`: Allowed HTTP methods
+- ❌ `error_page`: Custom error pages
+- 🔀 `redirection`: URL redirections
 
-3. Error Pages
-   - Create default error page templates
-   - Implement error page routing
-   - Add support for custom error pages in configuration
-   - Test error handling for all HTTP status codes
+## 📁 Project Structure
 
-### Medium Priority
-1. Directory Listing
-   - Implement autoindex feature
-   - Create HTML template for directory listings
-   - Add file size and modification date display
-   - Implement proper sorting and filtering
+```
+webserv/
+├── 📂 includes/     # Header files
+├── 📂 srcs/         # Source files
+├── 🌐 www/          # Web root directory
+├── 🔧 Makefile      # Build configuration
+└── ⚙️ webserv.conf  # Server configuration
+```
 
-2. HTTP Redirect
-   - Add support for 301 (Moved Permanently)
-   - Add support for 302 (Found)
-   - Implement redirect chain handling
-   - Add configuration options for redirects
+## 🚀 Usage
 
-3. CGI Improvements
-   - Enhance error handling for CGI scripts
-   - Add support for more CGI types
-   - Implement CGI timeout handling
-   - Add CGI environment variable validation
+1. ⚙️ Configure your server in `webserv.conf`
+2. 🏗️ Build the project using `make`
+3. 🚀 Run the server: `./webserv`
 
-### Low Priority
-1. Performance Optimizations
-   - Implement connection pooling
-   - Add request caching
-   - Optimize file operations
-   - Add compression support
-
-2. Security Enhancements
-   - Implement rate limiting
-   - Add request validation
-   - Enhance file access controls
-   - Add security headers
-
-3. Monitoring and Logging
-   - Add detailed access logs
-   - Implement error logging
-   - Create performance metrics
-   - Add debugging tools
