@@ -453,6 +453,5 @@ void parseConfigurationFile(const std::string &file, std::vector<Server *> &serv
 			throw std::invalid_argument(PARSING_UNEXPECTED);
 		servers.push_back(getServer(getServerBlock(content, index)));
 		servers.back()->init();
-		servers.back()->run();
 	}
 }
