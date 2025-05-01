@@ -206,6 +206,20 @@ void Server::handlePostRequest(int eventFd, std::string &request)
 
         send(eventFd, response.c_str(), response.size(), 0);
     }
+    else if (content_type.find("text/plain") != std::string::npos)
+    {
+        std::string response = "HTTP/1.1 200 OK\r\n"
+                               "Content-Type: text/plain\r\n"
+                               "\r\n"
+                               "Received text data:\n" +
+                               body;
+
+        send(eventFd, response.c_str(), response.size(), 0);
+    }
+    else
+    {
+        sendError(eventFd, 415, "Unsupported Media Type");
+    }
 }
 
 void Server::callCGI(int eventFd, std::string &request)
