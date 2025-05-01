@@ -421,11 +421,9 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     }
     if (uri[uri.length() - 1] == '/')
     {
-    std::cerr << "[DEBUG AUTOINDEX]: " << _autoindex << std::endl;
     if (_autoindex)
     {
         std::string dir_path = "www" + uri;
-        std::cerr << "[DEBUG]: " << dir_path << std::endl;
 
         DIR *dir;
         struct dirent *ent;
@@ -559,7 +557,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
             std::ofstream cookieFile(cookiePath.c_str());
             if (!cookieFile)
             {
-                std::cerr << RED << "Failed to create cookie file: " << cookiePath << RESET << std::endl;
+                std::cerr << ERROR_PREFIX << "Failed to create cookie file: " << cookiePath << std::endl;
             }
             cookieFile << _cookies[sessionID];
             cookieFile.close();
