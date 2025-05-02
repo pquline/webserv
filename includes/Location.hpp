@@ -24,4 +24,11 @@ class	Location
 
 		int	get_autoindex(void) const;
 
+		bool isMethodAllowed(const std::string& method) const;
+    	bool hasErrorPage(unsigned int code) const;
+    	const std::string& getErrorPage(unsigned int code) const;
+    	bool hasRedirection(const std::string& uri) const;
+    	const std::string& getRedirection(const std::string& uri) const;
+    	bool getAutoindex() const;
+
 };
