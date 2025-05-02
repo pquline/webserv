@@ -481,8 +481,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     std::string uri = request_splitted[1];
 
     const Location *loc = getExactLocation(uri);
-    if(loc)
-        // std::cerr << DEBUG_PREFIX << RED << "In a sub Location: " << RESET << uri << std::endl;
+
     if (loc && !loc->isMethodAllowed("GET"))
     {
         sendError(eventFd, 405, "Method Not Allowed");
@@ -490,14 +489,12 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     }
     if (loc && loc->hasRedirection(uri))
     {
-        // std::cerr << DEBUG_PREFIX << "Location got redirection" << std::endl;
         const std::string& destination = loc->getRedirection(uri);
         sendRedirection(eventFd, destination, 301);
         return;
     }
     else if (_redirections.find(uri) != _redirections.end())
     {
-        // std::cerr << DEBUG_PREFIX << "Server got redirection" << std::endl;
         const std::string& destination = _redirections.at(uri);
         sendRedirection(eventFd, destination, 301);
         return;
@@ -523,11 +520,9 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
             return;
         }
 
-        std::cerr << "[DEBUG AUTOINDEX]: " << _autoindex << std::endl;
         if (showAutoindex)
         {
             std::string dir_path = "www" + uri;
-            std::cerr << "[DEBUG]: " << dir_path << std::endl;
 
             DIR *dir;
             struct dirent *ent;
