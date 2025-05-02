@@ -3,7 +3,10 @@
 Location::~Location	(void)
 {}
 
-Location::Location(int autoindex, std::string root, std::map<unsigned int, std::string> error_pages, std::vector<std::string> indexes, std::vector<std::string> methods, std::map<std::string, std::string> redirections): _autoindex(autoindex), _root(root), _error_pages(error_pages), _indexes(indexes), _methods(methods), _redirections(redirections)
+Location::Location(int autoindex, std::string root, \
+    std::vector<std::string> indexes, std::vector<std::string> methods, \
+    std::map<std::string, std::string> redirections): _autoindex(autoindex), \
+    _root(root), _indexes(indexes), _methods(methods), _redirections(redirections)
 {}
 
 int	Location::get_autoindex(void) const
@@ -11,24 +14,16 @@ int	Location::get_autoindex(void) const
 	return (_autoindex);
 }
 
-bool Location::isMethodAllowed(const std::string& method) const 
+bool Location::isMethodAllowed(const std::string& method) const
 {
-    for (std::vector<std::string>::const_iterator it = _methods.begin(); it != _methods.end(); ++it) 
+    for (std::vector<std::string>::const_iterator it = _methods.begin(); it != _methods.end(); ++it)
 	{
-        if (*it == method) 
+        if (*it == method)
 		{
             return true;
         }
     }
     return false;
-}
-
-bool Location::hasErrorPage(unsigned int code) const {
-    return _error_pages.find(code) != _error_pages.end();
-}
-
-const std::string& Location::getErrorPage(unsigned int code) const {
-    return _error_pages.at(code);
 }
 
 bool Location::hasRedirection(const std::string& uri) const {
