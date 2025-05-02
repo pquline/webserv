@@ -172,7 +172,7 @@ static std::string generateErrorPage(int code, const std::string &message)
          << "    <meta charset=\"UTF-8\">\n"
          << "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
          << "    <title>Error " << code << "</title>\n"
-         << "    <link rel=\"stylesheet\" href=\"styles.css\">\n"
+         << "    <link rel=\"stylesheet\" href=\"/styles.css\">\n"
          << "</head>\n"
          << "<body>\n"
          << "    <div class=\"container\">\n"
@@ -196,9 +196,6 @@ void Server::sendError(int fd, int code, const std::string &message)
     {
         const std::string &error_page_path = it->second;
         std::ifstream error_file(error_page_path.c_str());
-        if (!error_file)
-        {
-        }
         if (error_file.is_open())
         {
             std::ostringstream buffer;
@@ -207,10 +204,17 @@ void Server::sendError(int fd, int code, const std::string &message)
             error_file.close();
         }
         else
+        {
+            std::ostringstream debugMsg;
+            debugMsg << "Error page file not found: " << error_page_path;
+            logWithTimestamp(debugMsg.str(), RED);
             body = generateErrorPage(code, message);
+        }
     }
     else
+    {
         body = generateErrorPage(code, message);
+    }
     std::ostringstream response;
 
     std::ostringstream errorMsg;

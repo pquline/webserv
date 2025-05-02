@@ -342,13 +342,22 @@ void Server::callCGI(int eventFd, const std::string &request)
             if (ready == -1)
             {
                 logWithTimestamp("Select error", RED);
-                break;
+                kill(pid, SIGKILL);
+                close(pipefd[0]);
+                close(pipefd[1]);
+                waitpid(pid, NULL, 0);
+                sendError(eventFd, 500, "Internal Server Error (select)");
+                return;
             }
             else if (ready == 0)
             {
                 logWithTimestamp("Script execution timeout", RED);
                 kill(pid, SIGKILL);
-                break;
+                close(pipefd[0]);
+                close(pipefd[1]);
+                waitpid(pid, NULL, 0);
+                sendError(eventFd, 504, "Gateway Timeout");
+                return;
             }
             else
             {
@@ -362,7 +371,11 @@ void Server::callCGI(int eventFd, const std::string &request)
                 {
                     logWithTimestamp("Output size limit exceeded", RED);
                     kill(pid, SIGKILL);
-                    break;
+                    close(pipefd[0]);
+                    close(pipefd[1]);
+                    waitpid(pid, NULL, 0);
+                    sendError(eventFd, 500, "CGI Output Too Large");
+                    return;
                 }
                 buffer[n] = '\0';
                 output.append(buffer, static_cast<unsigned long>(n));
@@ -370,7 +383,7 @@ void Server::callCGI(int eventFd, const std::string &request)
         }
 
         close(pipefd[0]);
-
+        close(pipefd[1]);
         int status;
         waitpid(pid, &status, 0);
 
