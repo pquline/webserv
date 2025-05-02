@@ -367,7 +367,7 @@ static void parseLocation(const std::string &directive,
 			throw std::invalid_argument(PARSING_UNEXPECTED);
 		index++;
 	}
-	locations[uri] = new Location(autoindex, root, indexes, methods, redirections);
+	locations[uri] = new Location(autoindex, root, methods, redirections);
 }
 
 Server *getServer(std::string data)

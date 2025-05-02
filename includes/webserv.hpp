@@ -68,6 +68,7 @@
 #define DEFAULT_MAX_BODY_SIZE 1000000
 
 class Server;
+class Location;
 
 void checkConfPathname(const std::string &pathname);
 void parseConfigurationFile(const std::string &file, std::vector<Server *> &servers);
