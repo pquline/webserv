@@ -434,15 +434,16 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     }
     if (uri == "/")
     {
-        uri = "/index.html";
+        uri = "/index.html";   
     }
     std::string _file_path = "www" + uri;
     struct stat path_stat;
+
     if (stat(_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
     {
         bool showAutoindex = loc ? loc->getAutoindex() : _autoindex;
         if (uri[uri.length() - 1] != '/')
-        {
+        {            
             std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
                                    "Location: " + uri + "/\r\n"
                                    "Content-Length: 0\r\n"
