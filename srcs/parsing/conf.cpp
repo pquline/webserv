@@ -329,49 +329,6 @@ static std::string getDirectiveKey(const std::string &directive, size_t index)
 	return (key);
 }
 
-static void parseLocation(const std::string &directive,
-						  std::map<std::string, Location *> &locations)
-{
-	std::string key;
-
-	int autoindex = UNSET;
-	std::string uri;
-	std::string root = "";
-	std::map<unsigned int, std::string> error_pages;
-	std::vector<std::string> indexes;
-	std::vector<std::string> methods;
-	size_t index = 0;
-
-	while (!isspace(directive[index]) && directive[index] != '{')
-		index++;
-	uri = directive.substr(0, index);
-	while (isspace(directive[index]))
-		index++;
-	index += sizeof('{');
-	while (index < directive.size() && directive[index] != '}')
-	{
-		while (index < directive.size() && (isspace(directive[index]) || directive[index] == '}'))
-			index++;
-		if (index >= directive.size())
-			break;
-		key = getDirectiveKey(directive, index);
-		if (key == "autoindex")
-			parseAutoindex(getDirective(directive, index), autoindex);
-		else if (key == "index")
-			parseIndexes(getDirective(directive, index), indexes);
-		else if (key == "root")
-			parseRoot(getDirective(directive, index), root);
-		else if (key == "error_page")
-			parseErrorPage(getDirective(directive, index), error_pages);
-		else if (key == "methods")
-			parseMethods(getDirective(directive, index), methods);
-		else
-			throw std::invalid_argument(PARSING_UNEXPECTED);
-		index++;
-	}
-	locations[uri] = new Location(autoindex, root, error_pages, indexes, methods);
-}
-
 static void parseRedirection(const std::string &directive, std::map<std::string, std::string> &redirections)
 {
     size_t index = std::string("redirection").size();
@@ -398,6 +355,52 @@ static void parseRedirection(const std::string &directive, std::map<std::string,
     redirections[from] = to;
     
     std::cerr << DEBUG_PREFIX << "redirection: [" << from << " -> " << to << "]" << std::endl;
+}
+
+static void parseLocation(const std::string &directive,
+						  std::map<std::string, Location *> &locations)
+{
+	std::string key;
+
+	int autoindex = UNSET;
+	std::string uri;
+	std::string root = "";
+	std::map<unsigned int, std::string> error_pages;
+	std::vector<std::string> indexes;
+	std::vector<std::string> methods;
+	std::map<std::string, std::string> redirections;
+	size_t index = 0;
+
+	while (!isspace(directive[index]) && directive[index] != '{')
+		index++;
+	uri = directive.substr(0, index);
+	while (isspace(directive[index]))
+		index++;
+	index += sizeof('{');
+	while (index < directive.size() && directive[index] != '}')
+	{
+		while (index < directive.size() && (isspace(directive[index]) || directive[index] == '}'))
+			index++;
+		if (index >= directive.size())
+			break;
+		key = getDirectiveKey(directive, index);
+		if (key == "autoindex")
+			parseAutoindex(getDirective(directive, index), autoindex);
+		else if (key == "index")
+			parseIndexes(getDirective(directive, index), indexes);
+		else if (key == "root")
+			parseRoot(getDirective(directive, index), root);
+		else if (key == "error_page")
+			parseErrorPage(getDirective(directive, index), error_pages);
+		else if (key == "methods")
+			parseMethods(getDirective(directive, index), methods);
+		else if(key == "redirection")
+			parseRedirection(getDirective(directive, index), redirections);
+		else
+			throw std::invalid_argument(PARSING_UNEXPECTED);
+		index++;
+	}
+	locations[uri] = new Location(autoindex, root, error_pages, indexes, methods, redirections);
 }
 
 Server *getServer(std::string data)
