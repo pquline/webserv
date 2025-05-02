@@ -169,7 +169,7 @@ void Server::handlePostRequest(int eventFd, const std::string &request)
                 if (ext_dot != std::string::npos)
                     extension = original_filename.substr(ext_dot);
                 std::string new_filename = session_id + extension;
-                std::string upload_path = "www/" + new_filename;
+                std::string upload_path = _root + new_filename;
                 std::ofstream ofs(upload_path.c_str(), std::ios::binary);
                 if (ofs)
                 {
@@ -194,7 +194,7 @@ void Server::handlePostRequest(int eventFd, const std::string &request)
         if (cookie.empty())
             cookie = "anonymous";
 
-        std::string cookiePath = "www/" + cookie + ".txt";
+        std::string cookiePath = _root + cookie + ".txt";
         saveMapToFile(form_data, cookiePath, eventFd);
 
         std::string response = "HTTP/1.1 303 See Other\r\n"
@@ -234,7 +234,7 @@ void Server::handlePostRequest(int eventFd, const std::string &request)
 void Server::callCGI(int eventFd, const std::string &request)
 {
     std::string requestTarget = parseRequestTarget(request);
-    std::string scriptPath = "www" + requestTarget;
+    std::string scriptPath = _root + requestTarget;
 
     if (access(scriptPath.c_str(), F_OK) != 0)
     {
@@ -506,7 +506,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     {
         uri = "/index.html";
     }
-    std::string _file_path = "www" + uri;
+    std::string _file_path = _root + uri;
     struct stat path_stat;
 
     if (stat(_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
@@ -526,7 +526,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         std::cerr << "[DEBUG AUTOINDEX]: " << _autoindex << std::endl;
         if (showAutoindex)
         {
-            std::string dir_path = "www" + uri;
+            std::string dir_path = _root + uri;
             std::cerr << "[DEBUG]: " << dir_path << std::endl;
 
             DIR *dir;
@@ -593,7 +593,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     http_request.setURI(uri);
     http_request.setHeaders(http_request.parseHeaders(request));
 
-    std::string file_path = "www" + uri;
+    std::string file_path = _root + uri;
 
     std::ifstream file(file_path.c_str());
     if (!file.is_open())
@@ -656,7 +656,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
             sessionID = generateSessionId();
             setCookie = "Set-Cookie: SESSIONID=" + sessionID + "; Path=/; Max-Age=3600\r\n";
             _cookies[sessionID] = "firstname: Unknown\nlastname: Unknown\nphoto: \nschool: Unknown\n";
-            std::string cookiePath = "www/" + sessionID + ".txt";
+            std::string cookiePath = _root + sessionID + ".txt";
             std::ofstream cookieFile(cookiePath.c_str());
             if (!cookieFile)
             {
@@ -680,7 +680,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
 
 static void ensureSessionFileExists(const std::string &sessionId, const std::vector<std::string> &expectedFields)
 {
-    std::string path = "www/" + sessionId + ".txt";
+    std::string path = "wwww/" + sessionId + ".txt";
     if (access(path.c_str(), F_OK) != 0)
     {
         std::ofstream file(path.c_str());
@@ -713,7 +713,7 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
         sendError(eventFd, 405, "Method Not Allowed");
         return;
     }
-    std::string file_path = "www" + uri;
+    std::string file_path = _root + uri;
 
     if (access(file_path.c_str(), F_OK) != 0)
         return sendError(eventFd, 404, "Not Found");

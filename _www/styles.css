@@ -1,0 +1,234 @@
+body {
+	font-family: "Poppins", sans-serif;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100vh;
+	margin: 0;
+	background: linear-gradient(-45deg, #ff9a00, #ff6b00, #ffaa4d, #ffc87c);
+	background-size: 400% 400%;
+	animation: gradientAnimation 10s ease infinite;
+}
+
+@keyframes gradientAnimation {
+	0% {
+		background-position: 0% 50%;
+	}
+
+	50% {
+		background-position: 100% 50%;
+	}
+
+	100% {
+		background-position: 0% 50%;
+	}
+}
+
+.container {
+	text-align: center;
+	background: rgba(255, 255, 255, 0.2);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	padding: 40px 60px;
+	border-radius: 20px;
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+}
+
+h1 {
+	color: #5a2a00;
+	margin-bottom: 50px;
+	font-size: 28px;
+}
+
+.button {
+	position: relative;
+	display: inline-block;
+	padding: 14px 28px;
+	margin: 12px;
+	background: rgba(255, 255, 255, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	border-radius: 15px;
+	color: #5a2a00;
+	font-size: 16px;
+	text-decoration: none;
+	cursor: pointer;
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2),
+		0 4px 30px rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+	transition: all 0.3s ease;
+	margin-top: 30px;
+}
+
+.button::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: -75%;
+	width: 50%;
+	height: 100%;
+}
+
+.button:hover {
+	background: rgba(255, 255, 255, 0.4);
+	transform: scale(1.02);
+}
+
+.profile-picture-wrapper {
+	width: 160px;
+	height: 160px;
+	border-radius: 50%;
+	overflow: hidden;
+	background: rgba(255, 255, 255, 0.6);
+	padding: 7px;
+	margin: 0 auto 20px;
+	display: flex;
+	justify-content: center;
+	align-items:center;
+	animation: float 6s ease-in-out infinite;
+	transition: transform 0.3s ease;
+}
+
+.profile-picture-wrapper:hover {
+	transform: scale(1.02);
+}
+
+.profile-picture {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+    border-radius: 50%;
+}
+
+.empty-circle {
+	width: 150px;
+	height: 150px;
+	border-radius: 50%;
+	background-color: rgba(255, 255, 255, 0.4);
+	border: 3px solid rgba(255, 255, 255, 0.6);
+	box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+	margin-bottom: 20px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* Form Styles */
+.form-group {
+	margin: 12px;
+	text-align: left;
+}
+
+label {
+	display: block;
+	margin-bottom: 5px;
+	font-weight: bold;
+	color: #5a2a00;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="file"],
+select {
+	width: 100%;
+	padding: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	border-radius: 15px;
+	box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.2);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	color: #5a2a00;
+	font-size: 16px;
+	transition: all 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="file"]:focus,
+select:focus {
+	outline: none;
+	border-color: rgba(255, 255, 255, 0.5);
+	background: rgba(255, 255, 255, 0.3);
+}
+
+.button-container {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 50px;
+}
+
+.button-container-2 {
+	margin-top: 20px;
+}
+
+.edit {
+	margin-left: 0px;
+	margin-right: 0px;
+}
+
+.preview {
+	margin-top: 10px;
+	max-width: 200px;
+	max-height: 200px;
+	display: none;
+	border-radius: 10px;
+	border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.info-container {
+	margin: 20px 0;
+}
+
+.info-container p {
+	margin: 0px 0px;
+	padding: 10px 15px;
+	transition: all 0.3s ease;
+	text-align: justify;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.info-container .form-group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 10px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.info-container .form-group label {
+    width: 100px;
+    margin: 0;
+    color: #5a2a00;
+    font-size: 16px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.info-container .form-group p {
+    margin: 0;
+    color: #7a3b00;
+    font-weight: bold;
+    font-size: 16px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    padding-left: 10px;
+}
+
+.error-message {
+	font-weight: bold;
+	color: #cc5500;
+}
