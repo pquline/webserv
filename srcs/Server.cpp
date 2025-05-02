@@ -22,7 +22,6 @@ Server::~Server()
              it != _locations.end(); it++)
             delete (it->second);
     }
-    logWithTimestamp("Server shut down", GREEN);
 }
 
 void Server::init()
@@ -45,15 +44,20 @@ void Server::init()
         if (listen(serverFd, 10) < 0)
             throw std::runtime_error("Listening failed");
 
-        std::cout << INIT_PREFIX "Server name(s): ";
-        for (std::vector<std::string>::const_iterator it = _hosts.begin(); it != _hosts.end(); it++)
-            std::cout << "[" YELLOW << *it << RESET "] ";
-        std::cout << std::endl;
-
         _serverFds.push_back(serverFd);
         std::ostringstream oss;
         oss << _ports[i];
         logWithTimestamp("http://localhost:" + oss.str(), GREEN);
+
+        time_t now = time(NULL);
+        struct tm *timeinfo = localtime(&now);
+        char timeStr[9];
+        strftime(timeStr, sizeof(timeStr), "%H:%M:%S", timeinfo);
+        std::cerr << GREEN << BOLD << "[" << timeStr << "] " << RESET;
+        std::cout << "Server name(s): ";
+        for (std::vector<std::string>::const_iterator it = _hosts.begin(); it != _hosts.end(); it++)
+            std::cout << "[" YELLOW << *it << RESET "] ";
+        std::cout << std::endl;
     }
 }
 
