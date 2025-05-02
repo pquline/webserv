@@ -8,7 +8,6 @@ class	Location
 
 		int									_autoindex;
 		std::string							_root;
-		std::vector<std::string>			_indexes;
 		std::vector<std::string>			_methods;
 		std::map<std::string, std::string> _redirections;
 
@@ -16,7 +15,7 @@ class	Location
 	public:
 
 		Location(int autoindex, std::string root, \
-			 std::vector<std::string> indexes, std::vector<std::string> methods, \
+			 std::vector<std::string> methods, \
 			 std::map<std::string, std::string> redirections);
 
 		 ~Location(void);

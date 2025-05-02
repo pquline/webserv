@@ -23,7 +23,7 @@ class Server
 		std::map<unsigned int, std::string>	_error_pages;
 		std::map<std::string, Location *>	_locations;
 		std::map<std::string, std::string>	_cookies;
-		std::map<std::string, std::string> _redirections;
+		std::map<std::string, std::string>  _redirections;
 
 		void	handlePostRequest(int eventFd, const std::string& request);
 		void	handleGetRequest(int eventFd, const std::string& request);

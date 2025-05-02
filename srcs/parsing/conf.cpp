@@ -288,34 +288,6 @@ static void parseErrorPage(const std::string &directive,
 	std::cerr << "]" << std::endl;
 }
 
-static void parseIndexes(const std::string &directive, std::vector<std::string> &indexes)
-{
-	size_t index = std::string("index").size();
-	size_t begin;
-
-	while (isspace(directive[index]))
-		index++;
-	while (index < directive.size())
-	{
-		begin = index;
-		while (index < directive.size() && !isspace(directive[index]))
-			index++;
-		indexes.push_back(directive.substr(begin, index - begin));
-		while (isspace(directive[index]))
-			index++;
-	}
-	std::cerr << CONF_PREFIX << "indexes: [";
-	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++)
-	{
-		std::vector<std::string>::const_iterator temp = ++it;
-		--it;
-		std::cerr << *it;
-		if (temp != indexes.end())
-			std::cerr << ", ";
-	}
-	std::cerr << "]" << std::endl;
-}
-
 static std::string getDirectiveKey(const std::string &directive, size_t index)
 {
 	const size_t begin = index;
@@ -385,8 +357,6 @@ static void parseLocation(const std::string &directive,
 		key = getDirectiveKey(directive, index);
 		if (key == "autoindex")
 			parseAutoindex(getDirective(directive, index), autoindex);
-		else if (key == "index")
-			parseIndexes(getDirective(directive, index), indexes);
 		else if (key == "root")
 			parseRoot(getDirective(directive, index), root);
 		else if (key == "methods")

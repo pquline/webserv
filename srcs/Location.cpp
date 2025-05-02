@@ -3,10 +3,9 @@
 Location::~Location	(void)
 {}
 
-Location::Location(int autoindex, std::string root, \
-    std::vector<std::string> indexes, std::vector<std::string> methods, \
+Location::Location(int autoindex, std::string root, std::vector<std::string> methods, \
     std::map<std::string, std::string> redirections): _autoindex(autoindex), \
-    _root(root), _indexes(indexes), _methods(methods), _redirections(redirections)
+    _root(root), _methods(methods), _redirections(redirections)
 {}
 
 int	Location::get_autoindex(void) const
