@@ -14,8 +14,8 @@ Server::Server(int autoindex, ssize_t max_body_size, std::string root, std::vect
 
 Server::~Server()
 {
-	for (size_t i = 0; i < _serverFds.size(); i++)
-		close(_serverFds[i]);
+    for (size_t i = 0; i < _serverFds.size(); i++)
+        close(_serverFds[i]);
     if (!_locations.empty())
     {
         for (std::map<std::string, Location *>::iterator it = _locations.begin();
@@ -27,198 +27,191 @@ Server::~Server()
 
 void Server::init()
 {
-    /*m_serverFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (m_serverFd == -1)
-        handleError("Socket creation failed");
-    m_address.sin_family = AF_INET;
-    m_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    m_address.sin_port = htons(static_cast<uint16_t>(*_ports.begin()));
+    for (size_t i = 0; i < _ports.size(); ++i)
+    {
+        int serverFd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+        if (serverFd == -1)
+            throw std::runtime_error("Socket creation failed");
 
-    if (bind(m_serverFd, (struct sockaddr *)(&m_address), sizeof(m_address)) < 0)
-        handleError("Binding failed");
+        struct sockaddr_in addr;
+        memset(&addr, 0, sizeof(addr));
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        addr.sin_port = htons(static_cast<uint16_t>(_ports[i]));
 
-    if (listen(m_serverFd, 10) < 0)
-        handleError("Listening failed");
-    std::cout << INIT_PREFIX "Server name(s): ";
-    for (std::vector<std::string>::const_iterator it = _hosts.begin(); it != _hosts.end(); it++)
-        std::cout << "[" YELLOW << *it << RESET "] ";
-    std::cout << std::endl;
-    std::ostringstream oss;
-    oss << *(_ports.begin());
-    logWithTimestamp("http://localhost:" + oss.str(), GREEN);*/
-	for (size_t i = 0; i < _ports.size(); ++i) {
-		int serverFd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-		if (serverFd == -1)
-			throw std::runtime_error("Socket creation failed");
+        if (bind(serverFd, (struct sockaddr *)(&addr), sizeof(addr)) < 0)
+            throw std::runtime_error("Binding failed");
 
-		struct sockaddr_in addr;
-		memset(&addr, 0, sizeof(addr));
-		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = htonl(INADDR_ANY);
-		addr.sin_port = htons(static_cast<uint16_t>(_ports[i]));
+        if (listen(serverFd, 10) < 0)
+            throw std::runtime_error("Listening failed");
 
-		if (bind(serverFd, (struct sockaddr *)(&addr), sizeof(addr)) < 0)
-			throw std::runtime_error("Binding failed");
+        std::cout << INIT_PREFIX "Server name(s): ";
+        for (std::vector<std::string>::const_iterator it = _hosts.begin(); it != _hosts.end(); it++)
+            std::cout << "[" YELLOW << *it << RESET "] ";
+        std::cout << std::endl;
 
-		if (listen(serverFd, 10) < 0)
-			throw std::runtime_error("Listening failed");
-
-		_serverFds.push_back(serverFd);
-		std::cout << GREEN << "http://localhost:" << _ports[i] << "..." << RESET << std::endl;
-	}
+        _serverFds.push_back(serverFd);
+        std::ostringstream oss;
+        oss << _ports[i];
+        logWithTimestamp("http://localhost:" + oss.str(), GREEN);
+    }
 }
-
 
 static std::string generateErrorPage(int code, const std::string &message)
 {
-	std::ostringstream page;
-	page << "<!DOCTYPE html>\n"
-		<< "<html lang=\"en\">\n"
-		<< "<head>\n"
-		<< "    <meta charset=\"UTF-8\">\n"
-		<< "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
-		<< "    <title>Error " << code << "</title>\n"
-		<< "    <link rel=\"stylesheet\" href=\"/styles.css\">\n"
-		<< "</head>\n"
-		<< "<body>\n"
-		<< "    <div class=\"container\">\n"
-		<< "        <h1>" << code << "</h1>\n"
-		<< "        <p class=\"error-message\">" << message << "</p>\n"
-		<< "        <div class=\"button-container-2\">\n"
-		<< "            <a class=\"button\" href=\"/index.html\">Back</a>\n"
-		<< "        </div>\n"
-		<< "    </div>\n"
-		<< "</body>\n"
-		<< "</html>\n";
+    std::ostringstream page;
+    page << "<!DOCTYPE html>\n"
+         << "<html lang=\"en\">\n"
+         << "<head>\n"
+         << "    <meta charset=\"UTF-8\">\n"
+         << "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+         << "    <title>Error " << code << "</title>\n"
+         << "    <link rel=\"stylesheet\" href=\"/styles.css\">\n"
+         << "</head>\n"
+         << "<body>\n"
+         << "    <div class=\"container\">\n"
+         << "        <h1>" << code << "</h1>\n"
+         << "        <p class=\"error-message\">" << message << "</p>\n"
+         << "        <div class=\"button-container-2\">\n"
+         << "            <a class=\"button\" href=\"/index.html\">Back</a>\n"
+         << "        </div>\n"
+         << "    </div>\n"
+         << "</body>\n"
+         << "</html>\n";
 
-	return page.str();
+    return page.str();
 }
 
 void Server::sendError(int fd, int code, const std::string &message)
 {
-	std::map<unsigned int, std::string>::const_iterator it = _error_pages.find(static_cast<unsigned int>(code));
-	std::string body;
-	if (it != _error_pages.end())
-	{
-		const std::string &error_page_path = it->second;
-		std::ifstream error_file(error_page_path.c_str());
-		if (error_file.is_open())
-		{
-			std::ostringstream buffer;
-			buffer << error_file.rdbuf();
-			body = buffer.str();
-			error_file.close();
-		}
-		else
-		{
-			std::ostringstream debugMsg;
-			debugMsg << "Error page file not found: " << error_page_path;
-			logWithTimestamp(debugMsg.str(), RED);
-			body = generateErrorPage(code, message);
-		}
-	}
-	else
-	{
-		body = generateErrorPage(code, message);
-	}
-	std::ostringstream response;
+    std::map<unsigned int, std::string>::const_iterator it = _error_pages.find(static_cast<unsigned int>(code));
+    std::string body;
+    if (it != _error_pages.end())
+    {
+        const std::string &error_page_path = it->second;
+        std::ifstream error_file(error_page_path.c_str());
+        if (error_file.is_open())
+        {
+            std::ostringstream buffer;
+            buffer << error_file.rdbuf();
+            body = buffer.str();
+            error_file.close();
+        }
+        else
+        {
+            std::ostringstream debugMsg;
+            debugMsg << "Error page file not found: " << error_page_path;
+            logWithTimestamp(debugMsg.str(), RED);
+            body = generateErrorPage(code, message);
+        }
+    }
+    else
+    {
+        body = generateErrorPage(code, message);
+    }
+    std::ostringstream response;
 
-	std::ostringstream errorMsg;
-	errorMsg << "Error " << code << ": " << message;
-	logWithTimestamp(errorMsg.str(), RED);
+    std::ostringstream errorMsg;
+    errorMsg << "Error " << code << ": " << message;
+    logWithTimestamp(errorMsg.str(), RED);
 
-	response << "HTTP/1.1 " << code << " " << message << "\r\n"
-		<< "Content-Type: text/html\r\n"
-		<< "Content-Length: " << body.size() << "\r\n"
-		<< "\r\n"
-		<< body;
-	send(fd, response.str().c_str(), response.str().size(), 0);
+    response << "HTTP/1.1 " << code << " " << message << "\r\n"
+             << "Content-Type: text/html\r\n"
+             << "Content-Length: " << body.size() << "\r\n"
+             << "\r\n"
+             << body;
+    send(fd, response.str().c_str(), response.str().size(), 0);
 }
 
 void Server::setNonBlocking(int fd)
 {
-	int flags = fcntl(fd, F_GETFL, 0);
-	if (flags == -1)
-		throw std::runtime_error("fcntl F_GETFL");
-	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-		throw std::runtime_error("fcntl F_SETFL");
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1)
+        throw std::runtime_error("fcntl F_GETFL");
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+        throw std::runtime_error("fcntl F_SETFL");
 }
 
 int Server::get_autoindex(void) const
 {
-	return (_autoindex);
+    return (_autoindex);
 }
 
 std::string Server::parseRequestTarget(const std::string &request)
 {
-	std::istringstream stream(request);
-	std::string method, path;
-	stream >> method >> path;
-	return path;
+    std::istringstream stream(request);
+    std::string method, path;
+    stream >> method >> path;
+    return path;
 }
 
 const std::vector<int> Server::getServerFds() const
 {
-	return _serverFds;
+    return _serverFds;
 }
 
 std::string Server::getHeader(const std::string &request, const std::string &key)
 {
-	size_t pos = request.find(key + ": ");
-	if (pos == std::string::npos)
-		return "";
-	size_t start = pos + key.length() + 2;
-	size_t end = request.find("\r\n", start);
-	return request.substr(start, end - start);
+    size_t pos = request.find(key + ": ");
+    if (pos == std::string::npos)
+        return "";
+    size_t start = pos + key.length() + 2;
+    size_t end = request.find("\r\n", start);
+    return request.substr(start, end - start);
 }
 
 const std::map<std::string, std::string> &Server::getRedirections() const
 {
-	return _redirections;
+    return _redirections;
 }
 
 const std::map<unsigned int, std::string> &Server::getErrorPages() const
 {
-	return _error_pages;
+    return _error_pages;
 }
 
 Location *Server::getExactLocation(const std::string &uri) const
 {
-	std::string normalizedUri = uri;
+    std::string normalizedUri = uri;
 
-	if (normalizedUri.size() > 1 && *normalizedUri.rbegin() == '/') {
-		normalizedUri.erase(normalizedUri.length() - 1);
-	}
+    if (normalizedUri.size() > 1 && *normalizedUri.rbegin() == '/')
+    {
+        normalizedUri.erase(normalizedUri.length() - 1);
+    }
 
-	std::map<std::string, Location*>::const_iterator it = _locations.find(normalizedUri);
-	if (it != _locations.end()) {
-		return it->second;
-	}
+    std::map<std::string, Location *>::const_iterator it = _locations.find(normalizedUri);
+    if (it != _locations.end())
+    {
+        return it->second;
+    }
 
-	size_t pos = normalizedUri.length();
-	while ((pos = normalizedUri.rfind('/', pos)) != std::string::npos) {
-		std::string parentUri = normalizedUri.substr(0, pos);
+    size_t pos = normalizedUri.length();
+    while ((pos = normalizedUri.rfind('/', pos)) != std::string::npos)
+    {
+        std::string parentUri = normalizedUri.substr(0, pos);
 
-		it = _locations.find(parentUri);
-		if (it != _locations.end()) {
-			return it->second;
-		}
+        it = _locations.find(parentUri);
+        if (it != _locations.end())
+        {
+            return it->second;
+        }
 
-		if (pos == 0) break;
-		pos--;
-	}
+        if (pos == 0)
+            break;
+        pos--;
+    }
 
-	return NULL;
+    return NULL;
 }
 
-void Server::sendRedirection(int eventFd, const std::string& destination, int code) 
+void Server::sendRedirection(int eventFd, const std::string &destination, int code)
 {
-	(void)code;
-	std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
-		"Location: " +
-		destination + "\r\n"
-		"Content-Length: 0\r\n"
-		"\r\n";
-	send(eventFd, response.c_str(), response.size(), 0);
-	return;
+    (void)code;
+    std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
+                           "Location: " +
+                           destination + "\r\n"
+                                         "Content-Length: 0\r\n"
+                                         "\r\n";
+    send(eventFd, response.c_str(), response.size(), 0);
+    return;
 }
