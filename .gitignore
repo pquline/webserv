@@ -5,6 +5,8 @@ webserv
 *.jpeg
 *.txt
 !default.png
+objs
+deps
 
 # Environment
 .vscode
