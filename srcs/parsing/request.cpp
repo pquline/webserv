@@ -1,5 +1,8 @@
 #include "Server.hpp"
 
+#define CGI_TIMEOUT_SECONDS 3
+#define CGI_MAX_OUTPUT_SIZE 1048576
+
 static void saveMapToFile(const std::map<std::string, std::string> &data, const std::string &filepath, int eventFd)
 {
     (void)eventFd;
@@ -83,7 +86,7 @@ void Server::handlePostRequest(int eventFd, const std::string &request)
     std::string body = request.substr(header_end + 4, content_length);
     std::string content_type = http_request.getContentType();
 
-    std::cerr << DEBUG_PREFIX << "POST request received" << std::endl;
+    logWithTimestamp("POST request received", GREEN);
 
     if (content_type.find("application/x-www-form-urlencoded") != std::string::npos)
     {
@@ -214,10 +217,16 @@ void Server::callCGI(int eventFd, const std::string &request)
     std::string scriptPath = "www" + requestTarget;
 
     if (access(scriptPath.c_str(), F_OK) != 0)
+    {
+        logWithTimestamp("Script not found", RED);
         return sendError(eventFd, 404, "CGI Script Not Found");
+    }
 
     if (access(scriptPath.c_str(), X_OK) != 0)
+    {
+        logWithTimestamp("Script not executable", RED);
         return sendError(eventFd, 403, "CGI Script Not Executable");
+    }
 
     std::string interpreter;
     size_t dot_pos = scriptPath.find_last_of('.');
@@ -240,18 +249,28 @@ void Server::callCGI(int eventFd, const std::string &request)
 
     int pipefd[2];
     if (pipe(pipefd) == -1)
+    {
+        logWithTimestamp("Failed to create pipe", RED);
         return sendError(eventFd, 500, "Internal Server Error (pipe)");
+    }
 
     pid_t pid = fork();
     if (pid < 0)
+    {
+        logWithTimestamp("Failed to fork", RED);
+        close(pipefd[0]);
+        close(pipefd[1]);
         return sendError(eventFd, 500, "Internal Server Error (fork)");
+    }
 
     if (pid == 0)
     {
+        // Child process
         close(pipefd[0]);
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
 
+        // Set up environment variables
         std::string contentLength = getHeader(request, "Content-Length");
         std::string contentType = getHeader(request, "Content-Type");
         std::string queryString = "";
@@ -289,7 +308,6 @@ void Server::callCGI(int eventFd, const std::string &request)
         std::vector<char *> argv;
         if (!interpreter.empty())
             argv.push_back(const_cast<char *>(interpreter.c_str()));
-
         argv.push_back(const_cast<char *>(scriptPath.c_str()));
         argv.push_back(NULL);
 
@@ -298,21 +316,24 @@ void Server::callCGI(int eventFd, const std::string &request)
         else
             execve(interpreter.c_str(), &argv[0], &envp[0]);
 
+        logWithTimestamp("Failed to execute script", RED);
         exit(1);
     }
     else
     {
+        // Parent process
         close(pipefd[1]);
 
         std::string output;
         char buffer[4096];
         ssize_t n;
+        size_t totalOutputSize = 0;
 
         fd_set readfds;
         struct timeval tv;
         FD_ZERO(&readfds);
         FD_SET(pipefd[0], &readfds);
-        tv.tv_sec = 5;
+        tv.tv_sec = CGI_TIMEOUT_SECONDS;
         tv.tv_usec = 0;
 
         while (true)
@@ -320,11 +341,23 @@ void Server::callCGI(int eventFd, const std::string &request)
             int ready = select(pipefd[0] + 1, &readfds, NULL, NULL, &tv);
             if (ready == -1)
             {
-                break;
+                logWithTimestamp("Select error", RED);
+                kill(pid, SIGKILL);
+                close(pipefd[0]);
+                close(pipefd[1]);
+                waitpid(pid, NULL, 0);
+                sendError(eventFd, 500, "Internal Server Error (select)");
+                return;
             }
             else if (ready == 0)
             {
-                break;
+                logWithTimestamp("Script execution timeout", RED);
+                kill(pid, SIGKILL);
+                close(pipefd[0]);
+                close(pipefd[1]);
+                waitpid(pid, NULL, 0);
+                sendError(eventFd, 504, "Gateway Timeout");
+                return;
             }
             else
             {
@@ -333,21 +366,41 @@ void Server::callCGI(int eventFd, const std::string &request)
                 {
                     break;
                 }
+                totalOutputSize += static_cast<unsigned long>(n);
+                if (totalOutputSize > CGI_MAX_OUTPUT_SIZE)
+                {
+                    logWithTimestamp("Output size limit exceeded", RED);
+                    kill(pid, SIGKILL);
+                    close(pipefd[0]);
+                    close(pipefd[1]);
+                    waitpid(pid, NULL, 0);
+                    sendError(eventFd, 500, "CGI Output Too Large");
+                    return;
+                }
                 buffer[n] = '\0';
                 output.append(buffer, static_cast<unsigned long>(n));
             }
         }
 
         close(pipefd[0]);
-
+        close(pipefd[1]);
         int status;
         waitpid(pid, &status, 0);
+
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+        {
+            logWithTimestamp("Script exited with non-zero status", RED);
+            sendError(eventFd, 500, "CGI Script Execution Failed");
+            return;
+        }
 
         if (!output.empty())
         {
             size_t header_end = output.find("\r\n\r\n");
             if (header_end != std::string::npos)
+            {
                 send(eventFd, output.c_str(), output.length(), 0);
+            }
             else
             {
                 std::ostringstream stream;
@@ -363,9 +416,13 @@ void Server::callCGI(int eventFd, const std::string &request)
             }
         }
         else
+        {
+            logWithTimestamp("No output from script", RED);
             sendError(eventFd, 500, "CGI Output Error");
+        }
     }
 }
+
 static std::string generateSessionId()
 {
     static const char alphanum[] =
@@ -426,9 +483,10 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         if (uri[uri.length() - 1] != '/')
         {
             std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
-                                   "Location: " + uri + "/\r\n"
-                                   "Content-Length: 0\r\n"
-                                   "\r\n";
+                                   "Location: " +
+                                   uri + "/\r\n"
+                                         "Content-Length: 0\r\n"
+                                         "\r\n";
             send(eventFd, response.c_str(), response.size(), 0);
             return;
         }
@@ -438,7 +496,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         {
             std::string dir_path = "www" + uri;
             std::cerr << "[DEBUG]: " << dir_path << std::endl;
-            
+
             DIR *dir;
             struct dirent *ent;
             if ((dir = opendir(dir_path.c_str())) != NULL)
@@ -451,12 +509,13 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
                     std::string parent_path = uri.substr(0, last_slash + 1);
                     html += "<li><a href=\"" + parent_path + "\">../</a></li>\n";
                 }
-                
+
                 while ((ent = readdir(dir)) != NULL)
                 {
                     std::string name = ent->d_name;
-                    if (name == "." || name == "..") continue;
-                    
+                    if (name == "." || name == "..")
+                        continue;
+
                     std::string full_path = dir_path + name;
                     struct stat statbuf;
                     if (stat(full_path.c_str(), &statbuf) == 0)
@@ -472,18 +531,20 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
                         }
                     }
                 }
-                closedir(dir); 
+                closedir(dir);
                 html += "</ul>\n<hr>\n</body>\n</html>";
-                
+
                 std::ostringstream sizeStream;
                 sizeStream << html.size();
                 std::string sizeStr = sizeStream.str();
-                
+
                 std::string response = "HTTP/1.1 200 OK\r\n"
-                                      "Content-Type: text/html\r\n"
-                                      "Content-Length: " + sizeStr + "\r\n"
-                                      "\r\n" + html;
-          
+                                       "Content-Type: text/html\r\n"
+                                       "Content-Length: " +
+                                       sizeStr + "\r\n"
+                                                 "\r\n" +
+                                       html;
+
                 send(eventFd, response.c_str(), response.size(), 0);
                 return;
             }
@@ -546,7 +607,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         }
 
         if (content_type != "text/css" && content_type != "text/plain" && content_type != "application/javascript" && content_type.find("image") == std::string::npos)
-            std::cerr << DEBUG_PREFIX << "GET [" << content_type << "] request received" << std::endl;
+            logWithTimestamp("GET [" + content_type + "] request received", GREEN);
         std::ostringstream sizeStream;
         sizeStream << content.size();
         std::string sizeStr = sizeStream.str();
@@ -567,12 +628,12 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
             std::ofstream cookieFile(cookiePath.c_str());
             if (!cookieFile)
             {
-                std::cerr << ERROR_PREFIX << "Failed to create cookie file: " << cookiePath << std::endl;
+                logWithTimestamp("Failed to create cookie file: " + cookiePath, RED);
             }
             cookieFile << _cookies[sessionID];
             cookieFile.close();
 
-            std::cerr << DEBUG_PREFIX << "New cookie generated" << RESET << std::endl;
+            logWithTimestamp("New cookie generated", GREEN);
         }
         std::string response = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: " +
@@ -610,7 +671,7 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
     if (request_splitted[2].compare(GOOD_HTTP_VERSION))
         return sendError(eventFd, 505, "HTTP Version Not Supported");
 
-    std::cerr << DEBUG_PREFIX << "DELETE request [" << request_splitted[1] << "] received" << std::endl;
+    logWithTimestamp("DELETE [" + request_splitted[1] + "] request received", GREEN);
 
     std::string uri = request_splitted[1];
     std::string file_path = "www" + uri;
