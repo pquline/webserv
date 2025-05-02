@@ -3,8 +3,8 @@ webserv
 *.png
 *.jpg
 *.jpeg
-!default.png
 *.txt
+!default.png
 
 # Environment
 .vscode
