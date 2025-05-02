@@ -27,7 +27,7 @@ int	main(int argc, char **argv)
 	}
 	catch (const std::exception &e)
 	{
-		std::cerr << ERROR_PREFIX << e.what() << std::endl;
+		logWithTimestamp(e.what(), RED);
 		if (!servers.empty())
 			deleteServers(servers);
 		return (EXIT_FAILURE);

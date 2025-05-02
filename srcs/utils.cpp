@@ -1,12 +1,24 @@
 #include "webserv.hpp"
 
-std::vector<std::string> ft_split(const std::string& str, char delimiter)
+void logWithTimestamp(const std::string &message, const std::string &color)
+{
+	time_t now = time(NULL);
+	struct tm *timeinfo = localtime(&now);
+	char timeStr[9];
+	strftime(timeStr, sizeof(timeStr), "%H:%M:%S", timeinfo);
+
+	std::cerr << color << BOLD << "[" << timeStr << "] " << RESET;
+	std::cerr << message << RESET << std::endl;
+}
+
+std::vector<std::string> ft_split(const std::string &str, char delimiter)
 {
 	std::vector<std::string> tokens;
 	size_t start = 0;
 	size_t end = str.find(delimiter);
 
-	while (end != std::string::npos) {
+	while (end != std::string::npos)
+	{
 		tokens.push_back(str.substr(start, end - start));
 		start = end + 1;
 		end = str.find(delimiter, start);
@@ -16,11 +28,13 @@ std::vector<std::string> ft_split(const std::string& str, char delimiter)
 	return tokens;
 }
 
-std::string url_decode(const std::string& str)
+std::string url_decode(const std::string &str)
 {
 	std::string result;
-	for (size_t i = 0; i < str.length(); ++i) {
-		if (str[i] == '+') result += ' ';
+	for (size_t i = 0; i < str.length(); ++i)
+	{
+		if (str[i] == '+')
+			result += ' ';
 		else if (str[i] == '%' && i + 2 < str.length())
 		{
 			std::string hex = str.substr(i + 1, 2);
@@ -28,24 +42,28 @@ std::string url_decode(const std::string& str)
 			result += ch;
 			i += 2;
 		}
-		else result += str[i];  
+		else
+			result += str[i];
 	}
 	return result;
 }
 
-std::map<std::string, std::string> parse_url_encoded(const std::string& body)
+std::map<std::string, std::string> parse_url_encoded(const std::string &body)
 {
 	std::map<std::string, std::string> form_data;
 	size_t pos = 0;
 
-	while (pos < body.length()) {
+	while (pos < body.length())
+	{
 		size_t amp_pos = body.find('&', pos);
-		if (amp_pos == std::string::npos) amp_pos = body.length();
+		if (amp_pos == std::string::npos)
+			amp_pos = body.length();
 
 		std::string pair = body.substr(pos, amp_pos - pos);
 		size_t equal_pos = pair.find('=');
 
-		if (equal_pos != std::string::npos) {
+		if (equal_pos != std::string::npos)
+		{
 			std::string key = pair.substr(0, equal_pos);
 			std::string value = pair.substr(equal_pos + 1);
 
