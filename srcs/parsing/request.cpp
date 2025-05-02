@@ -83,7 +83,7 @@ void Server::handlePostRequest(int eventFd, const std::string &request)
     std::string body = request.substr(header_end + 4, content_length);
     std::string content_type = http_request.getContentType();
 
-    std::cerr << DEBUG_PREFIX << "POST request received" << std::endl;
+    logWithTimestamp("POST request received", GREEN);
 
     if (content_type.find("application/x-www-form-urlencoded") != std::string::npos)
     {
@@ -289,7 +289,6 @@ void Server::callCGI(int eventFd, const std::string &request)
         std::vector<char *> argv;
         if (!interpreter.empty())
             argv.push_back(const_cast<char *>(interpreter.c_str()));
-
         argv.push_back(const_cast<char *>(scriptPath.c_str()));
         argv.push_back(NULL);
 
@@ -343,11 +342,20 @@ void Server::callCGI(int eventFd, const std::string &request)
         int status;
         waitpid(pid, &status, 0);
 
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+        {
+            logWithTimestamp("Script exited with non-zero status", RED);
+            sendError(eventFd, 500, "CGI Script Execution Failed");
+            return;
+        }
+
         if (!output.empty())
         {
             size_t header_end = output.find("\r\n\r\n");
             if (header_end != std::string::npos)
+            {
                 send(eventFd, output.c_str(), output.length(), 0);
+            }
             else
             {
                 std::ostringstream stream;
@@ -426,9 +434,10 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         if (uri[uri.length() - 1] != '/')
         {
             std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
-                                   "Location: " + uri + "/\r\n"
-                                   "Content-Length: 0\r\n"
-                                   "\r\n";
+                                   "Location: " +
+                                   uri + "/\r\n"
+                                         "Content-Length: 0\r\n"
+                                         "\r\n";
             send(eventFd, response.c_str(), response.size(), 0);
             return;
         }
@@ -451,12 +460,13 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
                     std::string parent_path = uri.substr(0, last_slash + 1);
                     html += "<li><a href=\"" + parent_path + "\">../</a></li>\n";
                 }
-                
+
                 while ((ent = readdir(dir)) != NULL)
                 {
                     std::string name = ent->d_name;
-                    if (name == "." || name == "..") continue;
-                    
+                    if (name == "." || name == "..")
+                        continue;
+
                     std::string full_path = dir_path + name;
                     struct stat statbuf;
                     if (stat(full_path.c_str(), &statbuf) == 0)
@@ -472,18 +482,20 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
                         }
                     }
                 }
-                closedir(dir); 
+                closedir(dir);
                 html += "</ul>\n<hr>\n</body>\n</html>";
-                
+
                 std::ostringstream sizeStream;
                 sizeStream << html.size();
                 std::string sizeStr = sizeStream.str();
-                
+
                 std::string response = "HTTP/1.1 200 OK\r\n"
-                                      "Content-Type: text/html\r\n"
-                                      "Content-Length: " + sizeStr + "\r\n"
-                                      "\r\n" + html;
-          
+                                       "Content-Type: text/html\r\n"
+                                       "Content-Length: " +
+                                       sizeStr + "\r\n"
+                                                 "\r\n" +
+                                       html;
+
                 send(eventFd, response.c_str(), response.size(), 0);
                 return;
             }
@@ -546,7 +558,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         }
 
         if (content_type != "text/css" && content_type != "text/plain" && content_type != "application/javascript" && content_type.find("image") == std::string::npos)
-            std::cerr << DEBUG_PREFIX << "GET [" << content_type << "] request received" << std::endl;
+            logWithTimestamp("GET [" + content_type + "] request received", GREEN);
         std::ostringstream sizeStream;
         sizeStream << content.size();
         std::string sizeStr = sizeStream.str();
@@ -567,12 +579,12 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
             std::ofstream cookieFile(cookiePath.c_str());
             if (!cookieFile)
             {
-                std::cerr << ERROR_PREFIX << "Failed to create cookie file: " << cookiePath << std::endl;
+                logWithTimestamp("Failed to create cookie file: " + cookiePath, RED);
             }
             cookieFile << _cookies[sessionID];
             cookieFile.close();
 
-            std::cerr << DEBUG_PREFIX << "New cookie generated" << RESET << std::endl;
+            logWithTimestamp("New cookie generated", GREEN);
         }
         std::string response = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: " +
@@ -610,7 +622,7 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
     if (request_splitted[2].compare(GOOD_HTTP_VERSION))
         return sendError(eventFd, 505, "HTTP Version Not Supported");
 
-    std::cerr << DEBUG_PREFIX << "DELETE request [" << request_splitted[1] << "] received" << std::endl;
+    logWithTimestamp("DELETE [" + request_splitted[1] + "] request received", GREEN);
 
     std::string uri = request_splitted[1];
     std::string file_path = "www" + uri;
