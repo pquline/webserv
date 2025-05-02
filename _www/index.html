@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Webserv</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      function getSessionId() {
+        const cookies = document.cookie.split(";");
+        for (const cookie of cookies) {
+          const [name, value] = cookie.trim().split("=");
+          if (name === "SESSIONID") return value;
+        }
+        return null;
+      }
+
+      function extractField(text, fieldName) {
+        const regex = new RegExp(`^${fieldName}:\\s*(.*)$`, "m");
+        const match = text.match(regex);
+        console.log(`[DEBUG]: extractField("${fieldName}"): `, match);
+        return match ? match[1].trim() : null;
+      }
+
+      async function loadUserInfo() {
+        const sessionId = getSessionId();
+        console.log("[DEBUG]: SESSIONID=" + sessionId);
+        const defaultPhoto = "/default.png";
+
+        if (!sessionId) {
+          updateWelcomeMessage(null);
+          loadProfilePhoto(defaultPhoto);
+          return;
+        }
+
+        try {
+          const response = await fetch(`/${encodeURIComponent(sessionId)}.txt`);
+          if (!response.ok) throw new Error("Session file not found");
+
+          const text = await response.text();
+          const photoPath = extractField(text, "photo");
+          const firstName = extractField(text, "firstname");
+
+          updateWelcomeMessage(firstName);
+          validateAndLoadPhoto(photoPath || defaultPhoto);
+        } catch (error) {
+          console.error("Error loading session info:", error);
+          updateWelcomeMessage(null);
+          loadProfilePhoto(defaultPhoto);
+        }
+      }
+
+      function updateWelcomeMessage(firstName) {
+        const h1 = document.querySelector("h1");
+        if (firstName == "Unknown")
+            firstName = None;
+        h1.textContent = `Welcome, ${firstName || "new adventurer"}!`;
+      }
+
+      function loadProfilePhoto(src) {
+        document.getElementById("profile-photo").innerHTML = `
+            <img src="${src}" class="profile-picture" alt="Profile Photo">
+          `;
+      }
+
+      function validateAndLoadPhoto(src) {
+        const testImg = new Image();
+        testImg.onload = () => loadProfilePhoto(src);
+        testImg.onerror = () => loadProfilePhoto("/default.png");
+        testImg.src = src;
+      }
+
+      function deleteUserInfo() {
+        const sessionId = getSessionId();
+        if (!sessionId) {
+          alert("Session ID not found.");
+          return;
+        }
+
+        if (
+          confirm(
+            "Are you sure you want to delete all your information? This action cannot be undone."
+          )
+        ) {
+          fetch(`/${encodeURIComponent(sessionId)}.txt`, {
+            method: "DELETE",
+          })
+            .then((response) => {
+              if (response.ok) {
+                alert("Your information has been deleted successfully.");
+                window.location.href = "/";
+              } else {
+                throw new Error("Failed to delete information.");
+              }
+            })
+            .catch((error) => {
+              alert("Error deleting your information. Please try again.");
+              console.error("Error:", error);
+            });
+        }
+      }
+
+      loadUserInfo();
+    </script>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Welcome, new adventurer!</h1>
+
+      <div class="profile-picture-wrapper">
+        <div id="profile-photo"></div>
+      </div>
+
+      <div class="button-container">
+        <a href="editmyinfo.html" class="button">Edit my info</a>
+        <a href="/cgi-bin/whoami.py" class="button">Who am I?</a>
+        <a href="/cgi-bin/clock.sh" class="button">What time is it?</a>
+        <button class="button" onclick="deleteUserInfo()">
+          Delete My Information
+        </button>
+      </div>
+    </div>
+  </body>
+</html>
