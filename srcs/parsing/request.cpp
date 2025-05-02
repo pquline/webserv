@@ -21,9 +21,16 @@ static void saveMapToFile(const std::map<std::string, std::string> &data, const 
 static std::string getCookie(const std::string &request)
 {
     size_t cookiePos = request.find("Cookie");
-    size_t cookieEnd = request.find("\r\n", cookiePos);
-    std::string cookie = request.substr(cookiePos + 18, cookieEnd - cookiePos - 18);
-    return cookie;
+    if (cookiePos == std::string::npos)
+        return "";
+    size_t valueStart = request.find("SESSIONID=", cookiePos);
+    if (valueStart == std::string::npos)
+        return "";
+    valueStart += 10;
+    size_t valueEnd = request.find(";", valueStart);
+    if (valueEnd == std::string::npos)
+        valueEnd = request.find("\r\n", valueStart);
+    return request.substr(valueStart, valueEnd - valueStart);
 }
 
 void Server::handlePostRequest(int eventFd, const std::string &request)
@@ -251,6 +258,8 @@ void Server::callCGI(int eventFd, const std::string &request)
     if (pipe(pipefd) == -1)
     {
         logWithTimestamp("Failed to create pipe", RED);
+        close(pipefd[0]);
+        close(pipefd[1]);
         return sendError(eventFd, 500, "Internal Server Error (pipe)");
     }
 
