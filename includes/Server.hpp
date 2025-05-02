@@ -41,6 +41,8 @@ class Server
 		std::string	getHeader(const std::string& request, const std::string& key);
 		const std::map<std::string, std::string> &getRedirections() const;
 		const std::map<unsigned int, std::string> &getErrorPages() const;
+		Location* getExactLocation(const std::string& uri) const;
+		void sendRedirection(int eventFd, const std::string& destination, int code);
 
 
 	public:
