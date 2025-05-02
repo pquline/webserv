@@ -1,5 +1,8 @@
 #include "Server.hpp"
 
+#define CGI_TIMEOUT_SECONDS 3
+#define CGI_MAX_OUTPUT_SIZE 1048576
+
 static void saveMapToFile(const std::map<std::string, std::string> &data, const std::string &filepath, int eventFd)
 {
     (void)eventFd;
@@ -214,10 +217,16 @@ void Server::callCGI(int eventFd, const std::string &request)
     std::string scriptPath = "www" + requestTarget;
 
     if (access(scriptPath.c_str(), F_OK) != 0)
+    {
+        logWithTimestamp("Script not found", RED);
         return sendError(eventFd, 404, "CGI Script Not Found");
+    }
 
     if (access(scriptPath.c_str(), X_OK) != 0)
+    {
+        logWithTimestamp("Script not executable", RED);
         return sendError(eventFd, 403, "CGI Script Not Executable");
+    }
 
     std::string interpreter;
     size_t dot_pos = scriptPath.find_last_of('.');
@@ -240,18 +249,28 @@ void Server::callCGI(int eventFd, const std::string &request)
 
     int pipefd[2];
     if (pipe(pipefd) == -1)
+    {
+        logWithTimestamp("Failed to create pipe", RED);
         return sendError(eventFd, 500, "Internal Server Error (pipe)");
+    }
 
     pid_t pid = fork();
     if (pid < 0)
+    {
+        logWithTimestamp("Failed to fork", RED);
+        close(pipefd[0]);
+        close(pipefd[1]);
         return sendError(eventFd, 500, "Internal Server Error (fork)");
+    }
 
     if (pid == 0)
     {
+        // Child process
         close(pipefd[0]);
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
 
+        // Set up environment variables
         std::string contentLength = getHeader(request, "Content-Length");
         std::string contentType = getHeader(request, "Content-Type");
         std::string queryString = "";
@@ -297,21 +316,24 @@ void Server::callCGI(int eventFd, const std::string &request)
         else
             execve(interpreter.c_str(), &argv[0], &envp[0]);
 
+        logWithTimestamp("Failed to execute script", RED);
         exit(1);
     }
     else
     {
+        // Parent process
         close(pipefd[1]);
 
         std::string output;
         char buffer[4096];
         ssize_t n;
+        size_t totalOutputSize = 0;
 
         fd_set readfds;
         struct timeval tv;
         FD_ZERO(&readfds);
         FD_SET(pipefd[0], &readfds);
-        tv.tv_sec = 5;
+        tv.tv_sec = CGI_TIMEOUT_SECONDS;
         tv.tv_usec = 0;
 
         while (true)
@@ -319,10 +341,13 @@ void Server::callCGI(int eventFd, const std::string &request)
             int ready = select(pipefd[0] + 1, &readfds, NULL, NULL, &tv);
             if (ready == -1)
             {
+                logWithTimestamp("Select error", RED);
                 break;
             }
             else if (ready == 0)
             {
+                logWithTimestamp("Script execution timeout", RED);
+                kill(pid, SIGKILL);
                 break;
             }
             else
@@ -330,6 +355,13 @@ void Server::callCGI(int eventFd, const std::string &request)
                 n = read(pipefd[0], buffer, sizeof(buffer) - 1);
                 if (n <= 0)
                 {
+                    break;
+                }
+                totalOutputSize += static_cast<unsigned long>(n);
+                if (totalOutputSize > CGI_MAX_OUTPUT_SIZE)
+                {
+                    logWithTimestamp("Output size limit exceeded", RED);
+                    kill(pid, SIGKILL);
                     break;
                 }
                 buffer[n] = '\0';
@@ -371,9 +403,13 @@ void Server::callCGI(int eventFd, const std::string &request)
             }
         }
         else
+        {
+            logWithTimestamp("No output from script", RED);
             sendError(eventFd, 500, "CGI Output Error");
+        }
     }
 }
+
 static std::string generateSessionId()
 {
     static const char alphanum[] =
@@ -447,7 +483,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         {
             std::string dir_path = "www" + uri;
             std::cerr << "[DEBUG]: " << dir_path << std::endl;
-            
+
             DIR *dir;
             struct dirent *ent;
             if ((dir = opendir(dir_path.c_str())) != NULL)

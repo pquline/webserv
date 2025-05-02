@@ -1,12 +1,24 @@
 #include "webserv.hpp"
 
-std::vector<std::string> ft_split(const std::string& str, char delimiter)
+void logWithTimestamp(const std::string &message, const std::string &color)
+{
+	time_t now = time(NULL);
+	struct tm *timeinfo = localtime(&now);
+	char timeStr[9];
+	strftime(timeStr, sizeof(timeStr), "%H:%M:%S", timeinfo);
+
+	std::cerr << color << BOLD << "[" << timeStr << "] " << RESET;
+	std::cerr << message << RESET << std::endl;
+}
+
+std::vector<std::string> ft_split(const std::string &str, char delimiter)
 {
 	std::vector<std::string> tokens;
 	size_t start = 0;
 	size_t end = str.find(delimiter);
 
-	while (end != std::string::npos) {
+	while (end != std::string::npos)
+	{
 		tokens.push_back(str.substr(start, end - start));
 		start = end + 1;
 		end = str.find(delimiter, start);
