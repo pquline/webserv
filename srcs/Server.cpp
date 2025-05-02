@@ -278,3 +278,44 @@ const std::map<unsigned int, std::string> &Server::getErrorPages() const
 {
     return _error_pages;
 }
+
+Location *Server::getExactLocation(const std::string &uri) const
+{
+    std::string normalizedUri = uri;
+    
+    if (normalizedUri.size() > 1 && *normalizedUri.rbegin() == '/') {
+        normalizedUri.erase(normalizedUri.length() - 1);
+    }
+
+    std::map<std::string, Location*>::const_iterator it = _locations.find(normalizedUri);
+    if (it != _locations.end()) {
+        return it->second;
+    }
+
+    size_t pos = normalizedUri.length();
+    while ((pos = normalizedUri.rfind('/', pos)) != std::string::npos) {
+        std::string parentUri = normalizedUri.substr(0, pos);
+        
+        it = _locations.find(parentUri);
+        if (it != _locations.end()) {
+            return it->second;
+        }
+
+        if (pos == 0) break;
+        pos--;
+    }
+
+    return NULL;
+}
+
+void Server::sendRedirection(int eventFd, const std::string& destination, int code) 
+{
+    (void)code;
+    std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
+                           "Location: " +
+                           destination + "\r\n"
+                                         "Content-Length: 0\r\n"
+                                         "\r\n";
+    send(eventFd, response.c_str(), response.size(), 0);
+    return;
+}
