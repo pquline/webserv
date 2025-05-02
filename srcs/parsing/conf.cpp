@@ -71,8 +71,8 @@ static void parseMethods(const std::string &directive, std::vector<std::string> 
         while (isspace(directive[index]))
             index++;
     }
-    
-    std::cerr << DEBUG_PREFIX << "methods: [";
+
+    std::cerr << CONF_PREFIX << "methods: [";
     for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); it++)
     {
         std::vector<std::string>::const_iterator temp = ++it;
@@ -146,7 +146,7 @@ static void parseAutoindex(const std::string &directive, int &autoindex)
 		index++;
 	if (index < directive.size() && directive[index] != ';')
 		throw std::invalid_argument(PARSING_AUTOINDEX);
-	std::cerr << DEBUG_PREFIX << "autoindex: [";
+	std::cerr << CONF_PREFIX << "autoindex: [";
 	if (autoindex == 1)
 		std::cerr << "on";
 	else
@@ -167,7 +167,7 @@ static void parseMaxBodySize(const std::string &directive, ssize_t &max_body_siz
 	if (begin == index || index - begin > 9)
 		throw std::invalid_argument(PARSING_BODY_SIZE);
 	max_body_size = strtol((directive.substr(begin, index - begin)).c_str(), nullptr, 10);
-	std::cerr << DEBUG_PREFIX << "client_max_body_size: [" << max_body_size << "]" << std::endl;
+	std::cerr << CONF_PREFIX << "client_max_body_size: [" << max_body_size << "]" << std::endl;
 }
 
 static void parseRoot(const std::string &directive, std::string &root)
@@ -182,7 +182,7 @@ static void parseRoot(const std::string &directive, std::string &root)
 		   directive[index] != ';')
 		index++;
 	root = directive.substr(begin, index - begin);
-	std::cerr << DEBUG_PREFIX << "root: [" << root << "]" << std::endl;
+	std::cerr << CONF_PREFIX << "root: [" << root << "]" << std::endl;
 }
 
 static void parseHost(const std::string &directive, std::vector<std::string> &hosts)
@@ -202,7 +202,7 @@ static void parseHost(const std::string &directive, std::vector<std::string> &ho
 		while (isspace(directive[index]))
 			index++;
 	}
-	std::cerr << DEBUG_PREFIX << "server_name: [";
+	std::cerr << CONF_PREFIX << "server_name: [";
 	for (std::vector<std::string>::const_iterator it = hosts.begin(); it != hosts.end(); it++)
 	{
 		std::vector<std::string>::const_iterator temp = ++it;
@@ -237,7 +237,7 @@ static void parsePort(const std::string &directive, std::vector<unsigned int> &p
 		if (isalpha(directive[index]))
 			throw std::invalid_argument(PARSING_PORTS);
 	}
-	std::cerr << DEBUG_PREFIX << "ports: [";
+	std::cerr << CONF_PREFIX << "ports: [";
 	for (std::vector<unsigned int>::const_iterator it = ports.begin(); it != ports.end(); it++)
 	{
 		std::vector<unsigned int>::const_iterator temp = ++it;
@@ -276,7 +276,7 @@ static void parseErrorPage(const std::string &directive,
 		throw std::invalid_argument(PARSING_ERROR_PAGE);
 	path = directive.substr(begin, index - begin);
 	error_pages[error_code] = path;
-	std::cerr << DEBUG_PREFIX << "error_pages: [";
+	std::cerr << CONF_PREFIX << "error_pages: [";
 	for (std::map<unsigned int, std::string>::const_iterator it = error_pages.begin(); it != error_pages.end(); it++)
 	{
 		std::map<unsigned int, std::string>::const_iterator temp = ++it;
@@ -304,7 +304,7 @@ static void parseIndexes(const std::string &directive, std::vector<std::string> 
 		while (isspace(directive[index]))
 			index++;
 	}
-	std::cerr << DEBUG_PREFIX << "indexes: [";
+	std::cerr << CONF_PREFIX << "indexes: [";
 	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++)
 	{
 		std::vector<std::string>::const_iterator temp = ++it;
@@ -381,7 +381,7 @@ static void parseRedirection(const std::string &directive, std::map<std::string,
 
     while (isspace(directive[index]))
         index++;
-    
+
     begin = index;
     while (index < directive.size() && !isspace(directive[index]))
         index++;
@@ -389,15 +389,15 @@ static void parseRedirection(const std::string &directive, std::map<std::string,
 
     while (isspace(directive[index]))
         index++;
-    
+
     begin = index;
     while (index < directive.size() && !isspace(directive[index]) && directive[index] != ';')
         index++;
     to = directive.substr(begin, index - begin);
 
     redirections[from] = to;
-    
-    std::cerr << DEBUG_PREFIX << "redirection: [" << from << " -> " << to << "]" << std::endl;
+
+    std::cerr << CONF_PREFIX << "redirection: [" << from << " -> " << to << "]" << std::endl;
 }
 
 Server *getServer(std::string data)

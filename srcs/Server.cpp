@@ -30,7 +30,7 @@ Server::~Server()
              it != _locations.end(); it++)
             delete (it->second);
     }
-    std::cerr << INFO_PREFIX "Server shut down" << std::endl;
+    logWithTimestamp("Server shut down", GREEN);
 }
 
 void Server::init()
@@ -47,16 +47,20 @@ void Server::init()
 
     if (listen(m_serverFd, 10) < 0)
         handleError("Listening failed");
-    std::cout << INFO_PREFIX "Server name(s): ";
+    std::cout << INIT_PREFIX "Server name(s): ";
     for (std::vector<std::string>::const_iterator it = _hosts.begin(); it != _hosts.end(); it++)
         std::cout << "[" YELLOW << *it << RESET "] ";
-    std::cout << "\n" INFO_PREFIX GREEN "http://localhost:" << *_ports.begin() << RESET << std::endl;
+    std::cout << std::endl;
+    std::ostringstream oss;
+    oss << *(_ports.begin());
+    logWithTimestamp("http://localhost:" + oss.str(), GREEN);
 }
 
-static bool isCompleteRequest(const std::string& req, size_t& bodySize)
+static bool isCompleteRequest(const std::string &req, size_t &bodySize)
 {
     size_t headerEnd = req.find("\r\n\r\n");
-    if (headerEnd == std::string::npos) {
+    if (headerEnd == std::string::npos)
+    {
         return false;
     }
 
@@ -101,8 +105,8 @@ void Server::run()
         {
             if (g_sig)
             {
-                std::cerr << "\n"
-                          << DEBUG_PREFIX << "SIGINT received, servers shutting down..." << std::endl;
+                std::cout << std::endl;
+                logWithTimestamp("SIGINT received, servers shutting down...", RED);
                 break;
             }
             else
@@ -168,7 +172,7 @@ static std::string generateErrorPage(int code, const std::string &message)
          << "    <meta charset=\"UTF-8\">\n"
          << "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
          << "    <title>Error " << code << "</title>\n"
-         << "    <link rel=\"stylesheet\" href=\"styles.css\">\n"
+         << "    <link rel=\"stylesheet\" href=\"/styles.css\">\n"
          << "</head>\n"
          << "<body>\n"
          << "    <div class=\"container\">\n"
@@ -192,9 +196,6 @@ void Server::sendError(int fd, int code, const std::string &message)
     {
         const std::string &error_page_path = it->second;
         std::ifstream error_file(error_page_path.c_str());
-        if (!error_file)
-        {
-        }
         if (error_file.is_open())
         {
             std::ostringstream buffer;
@@ -203,13 +204,23 @@ void Server::sendError(int fd, int code, const std::string &message)
             error_file.close();
         }
         else
+        {
+            std::ostringstream debugMsg;
+            debugMsg << "Error page file not found: " << error_page_path;
+            logWithTimestamp(debugMsg.str(), RED);
             body = generateErrorPage(code, message);
+        }
     }
     else
+    {
         body = generateErrorPage(code, message);
+    }
     std::ostringstream response;
 
-    std::cerr << ERROR_PREFIX << code << " " << message << std::endl;
+    std::ostringstream errorMsg;
+    errorMsg << "Error " << code << ": " << message;
+    logWithTimestamp(errorMsg.str(), RED);
+
     response << "HTTP/1.1 " << code << " " << message << "\r\n"
              << "Content-Type: text/html\r\n"
              << "Content-Length: " << body.size() << "\r\n"
@@ -220,7 +231,7 @@ void Server::sendError(int fd, int code, const std::string &message)
 
 void Server::handleError(const std::string &msg)
 {
-    std::cerr << RED << msg << ": " << std::strerror(errno) << RESET << std::endl;
+    logWithTimestamp(msg, RED);
     if (m_serverFd != -1)
         close(m_serverFd);
     exit(EXIT_FAILURE);
