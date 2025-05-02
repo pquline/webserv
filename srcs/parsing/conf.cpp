@@ -363,7 +363,7 @@ static void parseLocation(const std::string &directive,
 			parseRoot(getDirective(directive, index), root);
 		else if (key == "error_page")
 			parseErrorPage(getDirective(directive, index), error_pages);
-		else if (key == "methods") // Nouveau: gestion des méthodes
+		else if (key == "methods")
 			parseMethods(getDirective(directive, index), methods);
 		else
 			throw std::invalid_argument(PARSING_UNEXPECTED);

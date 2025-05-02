@@ -11,6 +11,8 @@ class	Location
 		std::map<unsigned int, std::string>	_error_pages;
 		std::vector<std::string>			_indexes;
 		std::vector<std::string>			_methods;
+		std::map<std::string, std::string> _redirections;
+
 
 	public:
 
