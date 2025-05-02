@@ -53,7 +53,7 @@ void Server::handlePostRequest(int eventFd, const std::string &request)
     http_request.setVersion(request_splitted[2]);
     std::string uri = request_splitted[1];
     const Location* loc = getExactLocation(uri);
-    if (loc && !loc->isMethodAllowed("POST")) 
+    if (loc && !loc->isMethodAllowed("POST"))
     {
         sendError(eventFd, 405, "Method Not Allowed");
         return;
@@ -466,32 +466,31 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     http_request.setVersion(request_splitted[2]);
     std::string uri = request_splitted[1];
 
-    std::cerr << DEBUG_PREFIX << "URI: " << uri << std::endl;
     const Location *loc = getExactLocation(uri);
     if(loc)
-        std::cerr << DEBUG_PREFIX << RED << "In a sub Location: " << RESET << uri << std::endl;
-    if (loc && !loc->isMethodAllowed("GET")) 
+        // std::cerr << DEBUG_PREFIX << RED << "In a sub Location: " << RESET << uri << std::endl;
+    if (loc && !loc->isMethodAllowed("GET"))
     {
         sendError(eventFd, 405, "Method Not Allowed");
         return;
     }
-    if (loc && loc->hasRedirection(uri)) 
+    if (loc && loc->hasRedirection(uri))
     {
-        std::cerr << DEBUG_PREFIX << "Location got redirection" << std::endl;
+        // std::cerr << DEBUG_PREFIX << "Location got redirection" << std::endl;
         const std::string& destination = loc->getRedirection(uri);
         sendRedirection(eventFd, destination, 301);
         return;
     }
-    else if (_redirections.find(uri) != _redirections.end()) 
+    else if (_redirections.find(uri) != _redirections.end())
     {
-        std::cerr << DEBUG_PREFIX << "Server got redirection" << std::endl;
+        // std::cerr << DEBUG_PREFIX << "Server got redirection" << std::endl;
         const std::string& destination = _redirections.at(uri);
         sendRedirection(eventFd, destination, 301);
         return;
     }
     if (uri == "/")
     {
-        uri = "/index.html";   
+        uri = "/index.html";
     }
     std::string _file_path = "www" + uri;
     struct stat path_stat;
@@ -500,7 +499,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     {
         bool showAutoindex = loc ? loc->getAutoindex() : _autoindex;
         if (uri[uri.length() - 1] != '/')
-        {            
+        {
             std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
                                    "Location: " +
                                    uri + "/\r\n"
@@ -683,7 +682,7 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
 {
     HTTPRequest http_request;
 
-    
+
     std::string first_line = request.substr(0, request.find("\r\n"));
     std::vector<std::string> request_splitted = ft_split(first_line, ' ');
     if (request_splitted.size() != 3)
@@ -695,7 +694,7 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
 
     std::string uri = request_splitted[1];
     const Location* loc = getExactLocation(uri);
-    if (loc && !loc->isMethodAllowed("DELETE")) 
+    if (loc && !loc->isMethodAllowed("DELETE"))
     {
         sendError(eventFd, 405, "Method Not Allowed");
         return;
@@ -728,7 +727,6 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
 void Server::parseRequest(int eventFd, const std::string &request)
 {
     std::string first_line = request.substr(0, request.find("\r\n"));
-    std::cerr << DEBUG_PREFIX << "Request received: " << first_line << std::endl; 
     if (first_line.find("GET") != std::string::npos)
         Server::handleGetRequest(eventFd, request);
     else if (first_line.find("POST") != std::string::npos)
