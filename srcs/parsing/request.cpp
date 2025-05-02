@@ -26,6 +26,39 @@ static std::string getCookie(const std::string &request)
     return cookie;
 }
 
+static void normalizePath(std::string& path)
+{
+    std::string result;
+    bool        prev_slash = false;
+    size_t      begin = 0;
+
+
+    while (path[begin] && path[begin] == '/')
+        ++begin;
+    if (begin == path.length())
+    {
+        path = "/";
+        return;
+    }
+    for (size_t i = begin; i < path.length(); i++)
+    {
+        if (path[i] == '/')
+        {
+            if (!prev_slash)
+            {
+                result += '/';
+                prev_slash = true;
+            }
+        }
+        else
+        {
+            result += path[i];
+            prev_slash = false;
+        }
+    }
+    path = result;
+}
+
 void Server::handlePostRequest(int eventFd, const std::string &request)
 {
     HTTPRequest http_request;
@@ -52,6 +85,7 @@ void Server::handlePostRequest(int eventFd, const std::string &request)
 
     http_request.setVersion(request_splitted[2]);
     std::string uri = request_splitted[1];
+    normalizePath(uri);
     const Location* loc = getExactLocation(uri);
     if (loc && !loc->isMethodAllowed("POST"))
     {
@@ -271,6 +305,8 @@ void Server::callCGI(int eventFd, const std::string &request)
     if (pipe(pipefd) == -1)
     {
         logWithTimestamp("Failed to create pipe", RED);
+        close(pipefd[0]);
+        close(pipefd[1]);
         return sendError(eventFd, 500, "Internal Server Error (pipe)");
     }
 
@@ -479,6 +515,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         return sendError(eventFd, 505, "HTTP Version Not Supported");
     http_request.setVersion(request_splitted[2]);
     std::string uri = request_splitted[1];
+    normalizePath(uri);
 
     const Location *loc = getExactLocation(uri);
 
@@ -589,7 +626,6 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     http_request.setHeaders(http_request.parseHeaders(request));
 
     std::string file_path = _root + uri;
-
     std::ifstream file(file_path.c_str());
     if (!file.is_open())
         return sendError(eventFd, 404, "Page Not Found");
@@ -702,6 +738,7 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
     logWithTimestamp("DELETE [" + request_splitted[1] + "] request received", GREEN);
 
     std::string uri = request_splitted[1];
+    normalizePath(uri);
     const Location* loc = getExactLocation(uri);
     if (loc && !loc->isMethodAllowed("DELETE"))
     {
