@@ -191,9 +191,15 @@ Location *Server::getExactLocation(const std::string &uri) const
     }
 
     size_t pos = normalizedUri.length();
-    while ((pos = normalizedUri.rfind('/', pos)) != std::string::npos)
+    while (true)
     {
+        pos = normalizedUri.rfind('/', pos);
+        if (pos == std::string::npos)
+            break;
+
         std::string parentUri = normalizedUri.substr(0, pos);
+        if (parentUri.empty())
+            parentUri = "/";
 
         it = _locations.find(parentUri);
         if (it != _locations.end())
@@ -204,6 +210,12 @@ Location *Server::getExactLocation(const std::string &uri) const
         if (pos == 0)
             break;
         pos--;
+    }
+
+    it = _locations.find("/");
+    if (it != _locations.end())
+    {
+        return it->second;
     }
 
     return NULL;
