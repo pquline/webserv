@@ -440,50 +440,62 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
 
     normalizePath(uri);
     const Location *loc = getExactLocation(uri);
-
-    if (loc && !loc->isMethodAllowed("GET"))
-    {
+    
+    
+    if (loc && !loc->isMethodAllowed("GET")) {
         sendError(eventFd, 405, "Method Not Allowed");
         return;
     }
-    if (loc && loc->hasRedirection(uri))
-    {
-
+    
+    if (loc && loc->hasRedirection(uri)) {
         const std::string &destination = loc->getRedirection(uri);
         sendRedirection(eventFd, destination, 301);
         return;
     }
-    else if (_redirections.find(uri) != _redirections.end())
-    {
+    else if (_redirections.find(uri) != _redirections.end()) {
         const std::string &destination = _redirections.at(uri);
         sendRedirection(eventFd, destination, 301);
         return;
     }
-    if (uri == "/")
-    {
-        uri = "/index.html";
-    }
+    
     std::string _file_path = _root + uri;
     struct stat path_stat;
+    
+    
+    if (stat(_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
+        
+        const std::vector<std::string>& indexes = loc ? loc->getIndexes() : std::vector<std::string>(1, "index.html");
+        bool index_found = false;
+        
 
-    if (stat(_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
-    {
-        bool showAutoindex = loc ? loc->getAutoindex() : _autoindex;
-        if (uri[uri.length() - 1] != '/')
-        {
-            std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
-                                   "Location: " +
-                                   uri + "/\r\n"
-                                         "Content-Length: 0\r\n"
-                                         "\r\n";
-            send(eventFd, response.c_str(), response.size(), 0);
-            return;
+        for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it) {
+            std::string test_path = _file_path + "/" + *it;
+            normalizePath(test_path);
+            
+            if (access(test_path.c_str(), F_OK) == 0) {
+                _file_path = test_path;
+                uri = uri + (uri[uri.length()-1] == '/' ? "" : "/") + *it;
+                index_found = true;
+                break;
+            }
         }
-
-        if (showAutoindex)
-        {
+    
+        if (!index_found) {
+            bool showAutoindex = loc ? loc->getAutoindex() : _autoindex;
+            
+            if (uri[uri.length() - 1] != '/') {
+                std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
+                                      "Location: " + uri + "/\r\n"
+                                      "Content-Length: 0\r\n\r\n";
+                send(eventFd, response.c_str(), response.size(), 0);
+                return;
+            }
+    
+            if (!showAutoindex) {
+                return sendError(eventFd, 403, "Forbidden");
+            }
+    
             std::string dir_path = _root + uri;
-
             DIR *dir;
             struct dirent *ent;
             if ((dir = opendir(dir_path.c_str())) != NULL)
@@ -526,11 +538,8 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
                 std::string sizeStr = sizeStream.str();
 
                 std::string response = "HTTP/1.1 200 OK\r\n"
-                                       "Content-Type: text/html\r\n"
-                                       "Content-Length: " +
-                                       sizeStr + "\r\n"
-                                                 "\r\n" +
-                                       html;
+                                      "Content-Type: text/html\r\n"
+                                      "Content-Length: " + sizeStr + "\r\n\r\n" + html;
 
                 send(eventFd, response.c_str(), response.size(), 0);
                 return;
@@ -540,24 +549,20 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
                 return sendError(eventFd, 403, "Forbidden");
             }
         }
-        else
-        {
-            return sendError(eventFd, 403, "Forbidden");
-        }
     }
+
     http_request.setURI(uri);
     http_request.setHeaders(http_request.parseHeaders(request));
 
-    std::string file_path = _root + uri;
-    std::ifstream file(file_path.c_str());
+    std::ifstream file(_file_path.c_str());
     if (!file.is_open())
         return sendError(eventFd, 404, "Page Not Found");
 
     bool isCGI = false;
-    size_t dot_pos = file_path.find_last_of('.');
+    size_t dot_pos = _file_path.find_last_of('.');
     if (dot_pos != std::string::npos)
     {
-        std::string extension = file_path.substr(dot_pos);
+        std::string extension = _file_path.substr(dot_pos);
         if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi")
             isCGI = true;
     }
@@ -575,7 +580,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
 
         if (dot_pos != std::string::npos)
         {
-            std::string extension = file_path.substr(dot_pos);
+            std::string extension = _file_path.substr(dot_pos);
             if (extension == ".css")
                 content_type = "text/css";
             else if (extension == ".js")
@@ -618,16 +623,12 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
             }
             cookieFile << _cookies[sessionID];
             cookieFile.close();
-
             logWithTimestamp("New cookie generated", GREEN);
         }
         std::string response = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: " +
-                               content_type + "\r\n"
-                                              "Content-Length: " +
-                               sizeStr + "\r\n" + setCookie +
-                               "\r\n" +
-                               content;
+                              "Content-Type: " + content_type + "\r\n"
+                              "Content-Length: " + sizeStr + "\r\n" + setCookie +
+                              "\r\n" + content;
         send(eventFd, response.c_str(), response.size(), 0);
     }
 }

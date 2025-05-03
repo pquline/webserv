@@ -10,13 +10,13 @@ class	Location
 		std::string							_root;
 		std::vector<std::string>			_methods;
 		std::map<std::string, std::string> _redirections;
-
+		std::vector<std::string>			_indexes;
 
 	public:
 
 		Location(int autoindex, std::string root, \
 			 std::vector<std::string> methods, \
-			 std::map<std::string, std::string> redirections);
+			 std::map<std::string, std::string> redirections, std::vector<std::string> indexes);
 
 		 ~Location(void);
 
@@ -28,5 +28,6 @@ class	Location
     	bool hasRedirection(const std::string& uri) const;
     	const std::string& getRedirection(const std::string& uri) const;
     	bool getAutoindex() const;
+		const std::vector<std::string>& getIndexes() const;
 
 };
