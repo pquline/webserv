@@ -441,8 +441,6 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     normalizePath(uri);
     const Location *loc = getExactLocation(uri);
 
-    if(loc)
-        std::cerr << GREEN << "in a sublocation" << uri << std::endl;
     if (loc && !loc->isMethodAllowed("GET"))
     {
         sendError(eventFd, 405, "Method Not Allowed");
