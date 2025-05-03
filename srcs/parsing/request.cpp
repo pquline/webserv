@@ -26,12 +26,11 @@ static std::string getCookie(const std::string &request)
     return cookie;
 }
 
-static void normalizePath(std::string& path)
+static void normalizePath(std::string &path)
 {
     std::string result;
-    bool        prev_slash = false;
-    size_t      begin = 0;
-
+    bool prev_slash = false;
+    size_t begin = 0;
 
     while (path[begin] && path[begin] == '/')
         ++begin;
@@ -86,7 +85,7 @@ void Server::handlePostRequest(int eventFd, const std::string &request)
     http_request.setVersion(request_splitted[2]);
     std::string uri = request_splitted[1];
     normalizePath(uri);
-    const Location* loc = getExactLocation(uri);
+    const Location *loc = getExactLocation(uri);
     if (loc && !loc->isMethodAllowed("POST"))
     {
         sendError(eventFd, 405, "Method Not Allowed");
@@ -377,103 +376,26 @@ void Server::callCGI(int eventFd, const std::string &request)
     }
     else
     {
-        // Parent process
         close(pipefd[1]);
-
-        std::string output;
-        char buffer[4096];
-        ssize_t n;
-        size_t totalOutputSize = 0;
-
-        fd_set readfds;
-        struct timeval tv;
-        FD_ZERO(&readfds);
-        FD_SET(pipefd[0], &readfds);
-        tv.tv_sec = CGI_TIMEOUT_SECONDS;
-        tv.tv_usec = 0;
-
-        while (true)
-        {
-            int ready = select(pipefd[0] + 1, &readfds, NULL, NULL, &tv);
-            if (ready == -1)
-            {
-                logWithTimestamp("Select error", RED);
-                kill(pid, SIGKILL);
-                close(pipefd[0]);
-                close(pipefd[1]);
-                waitpid(pid, NULL, 0);
-                sendError(eventFd, 500, "Internal Server Error (select)");
-                return;
-            }
-            else if (ready == 0)
-            {
-                logWithTimestamp("Script execution timeout", RED);
-                kill(pid, SIGKILL);
-                close(pipefd[0]);
-                close(pipefd[1]);
-                waitpid(pid, NULL, 0);
-                sendError(eventFd, 504, "Gateway Timeout");
-                return;
-            }
-            else
-            {
-                n = read(pipefd[0], buffer, sizeof(buffer) - 1);
-                if (n <= 0)
-                {
-                    break;
-                }
-                totalOutputSize += static_cast<unsigned long>(n);
-                if (totalOutputSize > CGI_MAX_OUTPUT_SIZE)
-                {
-                    logWithTimestamp("Output size limit exceeded", RED);
-                    kill(pid, SIGKILL);
-                    close(pipefd[0]);
-                    close(pipefd[1]);
-                    waitpid(pid, NULL, 0);
-                    sendError(eventFd, 500, "CGI Output Too Large");
-                    return;
-                }
-                buffer[n] = '\0';
-                output.append(buffer, static_cast<unsigned long>(n));
-            }
-        }
-
+        char buffer[8192] = {0};
+        ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
         close(pipefd[0]);
-        close(pipefd[1]);
-        int status;
-        waitpid(pid, &status, 0);
 
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+        if (n > 0)
         {
-            logWithTimestamp("Script exited with non-zero status", RED);
-            sendError(eventFd, 500, "CGI Script Execution Failed");
-            return;
-        }
-
-        if (!output.empty())
-        {
-            size_t header_end = output.find("\r\n\r\n");
-            if (header_end != std::string::npos)
-            {
-                send(eventFd, output.c_str(), output.length(), 0);
-            }
-            else
-            {
-                std::ostringstream stream;
-                stream << output.length();
-                std::string response =
-                    "HTTP/1.1 200 OK\r\n"
-                    "Content-Type: text/html\r\n"
-                    "Content-Length: " +
-                    stream.str() + "\r\n"
-                                   "\r\n" +
-                    output;
-                send(eventFd, response.c_str(), response.length(), 0);
-            }
+            std::ostringstream stream;
+            stream << strlen(buffer);
+            std::string response =
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: text/html\r\n"
+                "Content-Length: " +
+                stream.str() + "\r\n"
+                               "\r\n" +
+                std::string(buffer);
+            send(eventFd, response.c_str(), response.length(), 0);
         }
         else
         {
-            logWithTimestamp("No output from script", RED);
             sendError(eventFd, 500, "CGI Output Error");
         }
     }
@@ -526,13 +448,13 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     }
     if (loc && loc->hasRedirection(uri))
     {
-        const std::string& destination = loc->getRedirection(uri);
+        const std::string &destination = loc->getRedirection(uri);
         sendRedirection(eventFd, destination, 301);
         return;
     }
     else if (_redirections.find(uri) != _redirections.end())
     {
-        const std::string& destination = _redirections.at(uri);
+        const std::string &destination = _redirections.at(uri);
         sendRedirection(eventFd, destination, 301);
         return;
     }
@@ -727,7 +649,6 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
 {
     HTTPRequest http_request;
 
-
     std::string first_line = request.substr(0, request.find("\r\n"));
     std::vector<std::string> request_splitted = ft_split(first_line, ' ');
     if (request_splitted.size() != 3)
@@ -739,7 +660,7 @@ void Server::handleDeleteRequest(int eventFd, const std::string &request)
 
     std::string uri = request_splitted[1];
     normalizePath(uri);
-    const Location* loc = getExactLocation(uri);
+    const Location *loc = getExactLocation(uri);
     if (loc && !loc->isMethodAllowed("DELETE"))
     {
         sendError(eventFd, 405, "Method Not Allowed");
