@@ -39,10 +39,16 @@ void Server::init()
         addr.sin_port = htons(static_cast<uint16_t>(_ports[i]));
 
         if (bind(serverFd, (struct sockaddr *)(&addr), sizeof(addr)) < 0)
+		{
+			close(serverFd);
             throw std::runtime_error("Binding failed");
+		}
 
         if (listen(serverFd, 10) < 0)
+		{
+			close(serverFd);
             throw std::runtime_error("Listening failed");
+		}
 
         _serverFds.push_back(serverFd);
         std::ostringstream oss;

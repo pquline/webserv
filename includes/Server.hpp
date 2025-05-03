@@ -41,7 +41,6 @@ public:
     virtual ~Server();
 
     void init();
-    void run();
     int get_autoindex(void) const;
     const std::map<std::string, std::string> &getRedirections() const;
     const std::map<unsigned int, std::string> &getErrorPages() const;
