@@ -103,9 +103,6 @@ std::string Server::sendError(int code, const std::string &message)
         }
         else
         {
-            std::ostringstream debugMsg;
-            debugMsg << "Error page file not found: " << error_page_path;
-            logWithTimestamp(debugMsg.str(), RED);
             body = generateErrorPage(code, message);
         }
     }
