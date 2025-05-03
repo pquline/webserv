@@ -140,7 +140,8 @@ int main(int argc, char **argv)
                     size_t bodySize = 0;
                     if (isCompleteRequest(requestBuffer[fd], bodySize))
                     {
-                        curServer->parseRequest(fd, requestBuffer[fd]);
+                        std::string response = curServer->parseRequest(requestBuffer[fd]);
+                        send(fd, response.c_str(), response.size(), 0);
                         requestBuffer.erase(fd);
                         close(fd);
                         epoll_ctl(epollFd, EPOLL_CTL_DEL, fd, NULL);

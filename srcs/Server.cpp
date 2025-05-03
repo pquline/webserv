@@ -86,7 +86,7 @@ static std::string generateErrorPage(int code, const std::string &message)
     return page.str();
 }
 
-void Server::sendError(int fd, int code, const std::string &message)
+std::string Server::sendError(int code, const std::string &message)
 {
     std::map<unsigned int, std::string>::const_iterator it = _error_pages.find(static_cast<unsigned int>(code));
     std::string body;
@@ -124,7 +124,8 @@ void Server::sendError(int fd, int code, const std::string &message)
              << "Content-Length: " << body.size() << "\r\n"
              << "\r\n"
              << body;
-    send(fd, response.str().c_str(), response.str().size(), 0);
+
+    return (response.str().c_str());
 }
 
 void Server::setNonBlocking(int fd)
@@ -208,14 +209,12 @@ Location *Server::getExactLocation(const std::string &uri) const
     return NULL;
 }
 
-void Server::sendRedirection(int eventFd, const std::string &destination, int code)
+std::string   Server::sendRedirection(const std::string &destination)
 {
-    (void)code;
     std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
                            "Location: " +
                            destination + "\r\n"
                                          "Content-Length: 0\r\n"
                                          "\r\n";
-    send(eventFd, response.c_str(), response.size(), 0);
-    return;
+    return (response.c_str());
 }
