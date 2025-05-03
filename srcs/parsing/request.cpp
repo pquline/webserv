@@ -402,6 +402,20 @@ static std::string generateSessionId()
     return id;
 }
 
+static void ensureSessionFileExists(const std::string &sessionId, const std::vector<std::string> &expectedFields)
+{
+    std::string path = "wwww/" + sessionId + ".txt";
+    if (access(path.c_str(), F_OK) != 0)
+    {
+        std::ofstream file(path.c_str());
+        if (!file)
+            return;
+        for (size_t i = 0; i < expectedFields.size(); ++i)
+            file << expectedFields[i] << ": Unknown\n";
+        file.close();
+    }
+}
+
 std::string Server::handleGetRequest(const std::string &request)
 {
     HTTPRequest http_request;
@@ -586,7 +600,7 @@ std::string Server::handleGetRequest(const std::string &request)
                 cookieFile << _cookies[sessionID];
                 cookieFile.close();
 
-                logWithTimestamp("New cookie generated", GREEN);
+                logWithTimestamp("New cookie [" + sessionID + "] generated", GREEN);
             }
 
             response = "HTTP/1.1 200 OK\r\n"
@@ -597,20 +611,6 @@ std::string Server::handleGetRequest(const std::string &request)
     }
 
     return response;
-}
-
-static void ensureSessionFileExists(const std::string &sessionId, const std::vector<std::string> &expectedFields)
-{
-    std::string path = "wwww/" + sessionId + ".txt";
-    if (access(path.c_str(), F_OK) != 0)
-    {
-        std::ofstream file(path.c_str());
-        if (!file)
-            return;
-        for (size_t i = 0; i < expectedFields.size(); ++i)
-            file << expectedFields[i] << ": Unknown\n";
-        file.close();
-    }
 }
 
 std::string Server::handleDeleteRequest(const std::string &request)
@@ -636,7 +636,7 @@ std::string Server::handleDeleteRequest(const std::string &request)
     std::string file_path = _root + uri;
 
     if (access(file_path.c_str(), F_OK) != 0)
-        return sendError(404, "Not Found");
+        return sendError(404, "Page Not Found");
     struct stat path_stat;
     if (stat(file_path.c_str(), &path_stat) != 0)
         return sendError(500, "Internal Server Error");

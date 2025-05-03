@@ -127,8 +127,18 @@ int main(int argc, char **argv)
                 {
                     char buffer[BUFFER_SIZE] = {0};
                     ssize_t bytesRead = read(fd, buffer, BUFFER_SIZE);
-                    if (bytesRead <= 0)
+                    if (bytesRead < 0)
                     {
+                        logWithTimestamp("Error reading from socket: " + std::string(strerror(errno)), RED);
+                        requestBuffer.erase(fd);
+                        close(fd);
+                        epoll_ctl(epollFd, EPOLL_CTL_DEL, fd, NULL);
+                        fdToServer.erase(fd);
+                        continue;
+                    }
+                    if (bytesRead == 0)
+                    {
+                        logWithTimestamp("Client closed connection", YELLOW);
                         requestBuffer.erase(fd);
                         close(fd);
                         epoll_ctl(epollFd, EPOLL_CTL_DEL, fd, NULL);
@@ -141,7 +151,25 @@ int main(int argc, char **argv)
                     if (isCompleteRequest(requestBuffer[fd], bodySize))
                     {
                         std::string response = curServer->parseRequest(requestBuffer[fd]);
-                        send(fd, response.c_str(), response.size(), 0);
+                        ssize_t bytesSent = 0;
+                        ssize_t totalBytes = static_cast<long>(response.size());
+                        const char *responsePtr = response.c_str();
+
+                        while (bytesSent < totalBytes)
+                        {
+                            ssize_t sent = send(fd, responsePtr + bytesSent, static_cast<unsigned long>(totalBytes - bytesSent), 0);
+                            if (sent < 0)
+                            {
+                                logWithTimestamp("Error sending response: " + std::string(strerror(errno)), RED);
+                                break;
+                            }
+                            if (sent == 0)
+                            {
+                                logWithTimestamp("Connection closed while sending response", YELLOW);
+                                break;
+                            }
+                            bytesSent += sent;
+                        }
                         requestBuffer.erase(fd);
                         close(fd);
                         epoll_ctl(epollFd, EPOLL_CTL_DEL, fd, NULL);
