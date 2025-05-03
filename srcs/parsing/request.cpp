@@ -438,6 +438,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     http_request.setVersion(request_splitted[2]);
     std::string uri = request_splitted[1];
 
+    normalizePath(uri);
     const Location *loc = getExactLocation(uri);
 
     if(loc)
@@ -460,7 +461,6 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         sendRedirection(eventFd, destination, 301);
         return;
     }
-    normalizePath(uri);
     if (uri == "/")
     {
         uri = "/index.html";
