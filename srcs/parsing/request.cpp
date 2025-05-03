@@ -437,10 +437,12 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
         return sendError(eventFd, 505, "HTTP Version Not Supported");
     http_request.setVersion(request_splitted[2]);
     std::string uri = request_splitted[1];
-    normalizePath(uri);
 
+    normalizePath(uri);
     const Location *loc = getExactLocation(uri);
 
+    if(loc)
+        std::cerr << GREEN << "in a sublocation" << uri << std::endl;
     if (loc && !loc->isMethodAllowed("GET"))
     {
         sendError(eventFd, 405, "Method Not Allowed");
@@ -448,6 +450,7 @@ void Server::handleGetRequest(int eventFd, const std::string &request)
     }
     if (loc && loc->hasRedirection(uri))
     {
+
         const std::string &destination = loc->getRedirection(uri);
         sendRedirection(eventFd, destination, 301);
         return;
