@@ -4,8 +4,8 @@ Location::~Location	(void)
 {}
 
 Location::Location(int autoindex, std::string root, std::vector<std::string> methods, \
-    std::map<std::string, std::string> redirections): _autoindex(autoindex), \
-    _root(root), _methods(methods), _redirections(redirections)
+    std::map<std::string, std::string> redirections, std::vector<std::string> indexes): _autoindex(autoindex), \
+    _root(root), _methods(methods), _redirections(redirections), _indexes(indexes)
 {}
 
 int	Location::get_autoindex(void) const
@@ -35,4 +35,9 @@ const std::string& Location::getRedirection(const std::string& uri) const {
 
 bool Location::getAutoindex() const {
     return _autoindex;
+}
+
+const std::vector<std::string>& Location::getIndexes() const
+{
+    return _indexes;
 }

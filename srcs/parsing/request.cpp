@@ -429,50 +429,159 @@ std::string Server::handleGetRequest(const std::string &request)
         return sendError(505, "HTTP Version Not Supported");
     http_request.setVersion(request_splitted[2]);
     std::string uri = request_splitted[1];
-    normalizePath(uri);
 
+    normalizePath(uri);
     const Location *loc = getExactLocation(uri);
 
     if (loc && !loc->isMethodAllowed("GET"))
     {
         return (sendError(405, "Method Not Allowed"));
     }
-    if (loc && loc->hasRedirection(uri))
-    {
+
+    if (loc && loc->hasRedirection(uri)) {
         const std::string &destination = loc->getRedirection(uri);
-        response += sendRedirection(destination);
+        logWithTimestamp("Redirecting " + uri + " to " + destination, YELLOW);
+        response = "HTTP/1.1 301 Moved Permanently\r\n"
+                  "Location: " + destination + "\r\n"
+                  "Content-Length: 0\r\n\r\n";
+        return response;
     }
-    else if (_redirections.find(uri) != _redirections.end())
-    {
+    else if (_redirections.find(uri) != _redirections.end()) {
         const std::string &destination = _redirections.at(uri);
-        response += sendRedirection(destination);
+        logWithTimestamp("Redirecting " + uri + " to " + destination, YELLOW);
+        response = "HTTP/1.1 301 Moved Permanently\r\n"
+                  "Location: " + destination + "\r\n"
+                  "Content-Length: 0\r\n\r\n";
+        return response;
     }
-    if (uri == "/")
-    {
-        uri = "/index.html";
-    }
+
     std::string _file_path = _root + uri;
     struct stat path_stat;
 
-    if (stat(_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
-    {
-        bool showAutoindex = loc ? loc->getAutoindex() : _autoindex;
-        if (uri[uri.length() - 1] != '/')
+    if (stat(_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
+
+        const std::vector<std::string>& indexes = loc ? loc->getIndexes() : std::vector<std::string>(1, "index.html");
+        bool index_found = false;
+
+        for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it) {
+            std::string test_path = _file_path + "/" + *it;
+            normalizePath(test_path);
+
+            if (access(test_path.c_str(), F_OK) == 0) {
+                _file_path = test_path;
+                uri = uri + (uri[uri.length()-1] == '/' ? "" : "/") + *it;
+                index_found = true;
+                break;
+            }
+        }
+
+        if (index_found)
         {
-            response = "HTTP/1.1 301 Moved Permanently\r\n"
-                      "Location: " + uri + "/\r\n"
-                      "Content-Length: 0\r\n"
-                      "\r\n";
+            http_request.setURI(uri);
+            http_request.setHeaders(http_request.parseHeaders(request));
+
+            std::ifstream file(_file_path.c_str());
+            if (!file.is_open())
+                return sendError(404, "Page Not Found");
+
+            bool isCGI = false;
+            size_t dot_pos = _file_path.find_last_of('.');
+            if (dot_pos != std::string::npos)
+            {
+                std::string extension = _file_path.substr(dot_pos);
+                if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi")
+                    isCGI = true;
+            }
+
+            if (isCGI)
+                response += callCGI(request);
+            else
+            {
+                std::stringstream buf;
+                buf << file.rdbuf();
+                file.close();
+
+                std::string content = buf.str();
+                std::string content_type = "text/html";
+
+                if (dot_pos != std::string::npos)
+                {
+                    std::string extension = _file_path.substr(dot_pos);
+                    if (extension == ".css")
+                        content_type = "text/css";
+                    else if (extension == ".js")
+                        content_type = "application/javascript";
+                    else if (extension == ".png")
+                        content_type = "image/png";
+                    else if (extension == ".jpg" || extension == ".jpeg")
+                        content_type = "image/jpeg";
+                    else if (extension == ".gif")
+                        content_type = "image/gif";
+                    else if (extension == ".ico")
+                        content_type = "image/x-icon";
+                    else if (extension == ".txt")
+                        content_type = "text/plain";
+                }
+
+                std::ostringstream sizeStream;
+                sizeStream << content.size();
+                std::string sizeStr = sizeStream.str();
+
+                size_t cookiePos = request.find("Cookie");
+                std::string sessionID = "";
+                std::string setCookie = "";
+                if (cookiePos != std::string::npos)
+                {
+                    sessionID = getCookie(request);
+                }
+                else
+                {
+                    sessionID = generateSessionId();
+                    setCookie = "Set-Cookie: SESSIONID=" + sessionID + "; Path=/; Max-Age=3600\r\n";
+                    _cookies[sessionID] = "firstname: Unknown\nlastname: Unknown\nphoto: \nschool: Unknown\n";
+                    std::string cookiePath = _root + sessionID + ".txt";
+                    std::ofstream cookieFile(cookiePath.c_str());
+                    if (!cookieFile)
+                    {
+                        logWithTimestamp("Failed to create cookie file: " + cookiePath, RED);
+                    }
+                    cookieFile << _cookies[sessionID];
+                    cookieFile.close();
+
+                    logWithTimestamp("New cookie [" + sessionID + "] generated", GREEN);
+                }
+
+                response = "HTTP/1.1 200 OK\r\n"
+                          "Content-Type: " + content_type + "\r\n"
+                          "Content-Length: " + sizeStr + "\r\n" + setCookie +
+                          "\r\n" + content;
+            }
             return response;
         }
-        else if (showAutoindex)
+        else
         {
-            std::string dir_path = _root + uri;
+            logWithTimestamp("No index file found, checking autoindex", YELLOW);
+            bool showAutoindex = loc ? loc->getAutoindex() : _autoindex;
+            logWithTimestamp("Autoindex setting: " + std::string(showAutoindex ? "enabled" : "disabled"), YELLOW);
 
+            if (uri[uri.length() - 1] != '/') {
+                logWithTimestamp("Redirecting to directory with trailing slash", YELLOW);
+                std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
+                                   "Location: " + uri + "/\r\n"
+                                   "Content-Length: 0\r\n\r\n";
+                return (response);
+            }
+
+            if (!showAutoindex) {
+                logWithTimestamp("Autoindex disabled, returning forbidden", RED);
+                return (sendError(403, "Forbidden"));
+            }
+
+            std::string dir_path = _root + uri;
             DIR *dir;
             struct dirent *ent;
-            if ((dir = opendir(dir_path.c_str())) != NULL)
-            {
+            if ((dir = opendir(dir_path.c_str())) != NULL) {
+                logWithTimestamp("Generating autoindex for: " + dir_path, GREEN);
                 std::string html = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of " + uri + "</title>\n</head>\n";
                 html += "<body>\n<h1>Index of " + uri + "</h1>\n<hr>\n<ul>\n";
                 if (uri != "/")
@@ -520,10 +629,6 @@ std::string Server::handleGetRequest(const std::string &request)
             {
                 return sendError(403, "Forbidden");
             }
-        }
-        else
-        {
-            return sendError(403, "Forbidden");
         }
     }
     else
