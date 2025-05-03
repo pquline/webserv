@@ -356,422 +356,450 @@ std::string Server::callCGI(const std::string &request)
     }
     else
     {
-        close(pipefd[1]);
-        char buffer[8192] = {0};
-        ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
-        close(pipefd[0]);
+		int status;
+		time_t start = std::time(NULL);
 
-        if (n > 0)
-        {
-            std::ostringstream stream;
-            stream << strlen(buffer);
-            std::string response =
-                "HTTP/1.1 200 OK\r\n"
-                "Content-Type: text/html\r\n"
-                "Content-Length: " +
-                stream.str() + "\r\n"
-                               "\r\n" +
-                std::string(buffer);
-            return (response.c_str());
-        }
-    }
-    return (sendError(500, "CGI Output Error"));
+		while (true)
+		{
+			pid_t result = waitpid(pid, &status, WNOHANG);
+
+			if (result < 0)
+			{
+				close(pipefd[1]);
+				close(pipefd[0]);
+				return sendError(500, "Internal Server Error (waitpid)");
+			}
+			else if (result == 0)
+			{
+				if (std::time(NULL) - start >= TIMEOUT_SECOND)
+				{
+					close(pipefd[1]);
+					close(pipefd[0]);
+					kill(pid, SIGKILL);
+					waitpid(pid, &status, 0);
+					return sendError(504, "Gateway Timeout");
+				}
+			}
+			else
+			{
+				close(pipefd[1]);
+				char buffer[8192] = {0};
+				ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
+				close(pipefd[0]);
+
+				if (n > 0)
+				{
+					std::ostringstream stream;
+					stream << strlen(buffer);
+					std::string response =
+						"HTTP/1.1 200 OK\r\n"
+						"Content-Type: text/html\r\n"
+						"Content-Length: " +
+						stream.str() + "\r\n"
+						"\r\n" +
+						std::string(buffer);
+					return (response.c_str());
+				}
+			}
+		}
+	}
+	return (sendError(500, "CGI Output Error"));
 }
 
 static std::string generateSessionId()
 {
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
+	static const char alphanum[] =
+		"0123456789"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz";
 
-    static bool seeded = false;
-    if (!seeded)
-    {
-        srand(static_cast<unsigned int>(time(NULL)));
-        seeded = true;
-    }
+	static bool seeded = false;
+	if (!seeded)
+	{
+		srand(static_cast<unsigned int>(time(NULL)));
+		seeded = true;
+	}
 
-    std::string id;
-    id.reserve(32);
-    for (int i = 0; i < 32; ++i)
-    {
-        id += alphanum[static_cast<unsigned long>(rand()) % (sizeof(alphanum) - 1)];
-    }
+	std::string id;
+	id.reserve(32);
+	for (int i = 0; i < 32; ++i)
+	{
+		id += alphanum[static_cast<unsigned long>(rand()) % (sizeof(alphanum) - 1)];
+	}
 
-    return id;
+	return id;
 }
 
 static void ensureSessionFileExists(const std::string &sessionId, const std::vector<std::string> &expectedFields)
 {
-    std::string path = "wwww/" + sessionId + ".txt";
-    if (access(path.c_str(), F_OK) != 0)
-    {
-        std::ofstream file(path.c_str());
-        if (!file)
-            return;
-        for (size_t i = 0; i < expectedFields.size(); ++i)
-            file << expectedFields[i] << ": Unknown\n";
-        file.close();
-    }
+	std::string path = "wwww/" + sessionId + ".txt";
+	if (access(path.c_str(), F_OK) != 0)
+	{
+		std::ofstream file(path.c_str());
+		if (!file)
+			return;
+		for (size_t i = 0; i < expectedFields.size(); ++i)
+			file << expectedFields[i] << ": Unknown\n";
+		file.close();
+	}
 }
 
 std::string Server::handleGetRequest(const std::string &request)
 {
-    HTTPRequest http_request;
-    std::string response = "";
+	HTTPRequest http_request;
+	std::string response = "";
 
-    std::string first_line = request.substr(0, request.find("\r\n"));
-    std::vector<std::string> request_splitted = ft_split(first_line, ' ');
-    if (request_splitted.size() != 3)
-        return sendError(400, "Bad Request");
-    if (request_splitted[2].compare(GOOD_HTTP_VERSION))
-        return sendError(505, "HTTP Version Not Supported");
-    http_request.setVersion(request_splitted[2]);
-    std::string uri = request_splitted[1];
+	std::string first_line = request.substr(0, request.find("\r\n"));
+	std::vector<std::string> request_splitted = ft_split(first_line, ' ');
+	if (request_splitted.size() != 3)
+		return sendError(400, "Bad Request");
+	if (request_splitted[2].compare(GOOD_HTTP_VERSION))
+		return sendError(505, "HTTP Version Not Supported");
+	http_request.setVersion(request_splitted[2]);
+	std::string uri = request_splitted[1];
 
-    normalizePath(uri);
-    const Location *loc = getExactLocation(uri);
+	normalizePath(uri);
+	const Location *loc = getExactLocation(uri);
 
-    if (loc && !loc->isMethodAllowed("GET"))
-    {
-        return (sendError(405, "Method Not Allowed"));
-    }
+	if (loc && !loc->isMethodAllowed("GET"))
+	{
+		return (sendError(405, "Method Not Allowed"));
+	}
 
-    if (loc && loc->hasRedirection(uri)) {
-        const std::string &destination = loc->getRedirection(uri);
-        logWithTimestamp("Redirecting " + uri + " to " + destination, YELLOW);
-        response = "HTTP/1.1 301 Moved Permanently\r\n"
-                  "Location: " + destination + "\r\n"
-                  "Content-Length: 0\r\n\r\n";
-        return response;
-    }
-    else if (_redirections.find(uri) != _redirections.end()) {
-        const std::string &destination = _redirections.at(uri);
-        logWithTimestamp("Redirecting " + uri + " to " + destination, YELLOW);
-        response = "HTTP/1.1 301 Moved Permanently\r\n"
-                  "Location: " + destination + "\r\n"
-                  "Content-Length: 0\r\n\r\n";
-        return response;
-    }
+	if (loc && loc->hasRedirection(uri)) {
+		const std::string &destination = loc->getRedirection(uri);
+		logWithTimestamp("Redirecting " + uri + " to " + destination, YELLOW);
+		response = "HTTP/1.1 301 Moved Permanently\r\n"
+			"Location: " + destination + "\r\n"
+			"Content-Length: 0\r\n\r\n";
+		return response;
+	}
+	else if (_redirections.find(uri) != _redirections.end()) {
+		const std::string &destination = _redirections.at(uri);
+		logWithTimestamp("Redirecting " + uri + " to " + destination, YELLOW);
+		response = "HTTP/1.1 301 Moved Permanently\r\n"
+			"Location: " + destination + "\r\n"
+			"Content-Length: 0\r\n\r\n";
+		return response;
+	}
 
-    std::string _file_path = _root + uri;
-    struct stat path_stat;
+	std::string _file_path = _root + uri;
+	struct stat path_stat;
 
-    if (stat(_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
+	if (stat(_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
 
-        const std::vector<std::string>& indexes = loc ? loc->getIndexes() : std::vector<std::string>(1, "index.html");
-        bool index_found = false;
+		const std::vector<std::string>& indexes = loc ? loc->getIndexes() : std::vector<std::string>(1, "index.html");
+		bool index_found = false;
 
-        for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it) {
-            std::string test_path = _file_path + "/" + *it;
-            normalizePath(test_path);
+		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it) {
+			std::string test_path = _file_path + "/" + *it;
+			normalizePath(test_path);
 
-            if (access(test_path.c_str(), F_OK) == 0) {
-                _file_path = test_path;
-                uri = uri + (uri[uri.length()-1] == '/' ? "" : "/") + *it;
-                index_found = true;
-                break;
-            }
-        }
+			if (access(test_path.c_str(), F_OK) == 0) {
+				_file_path = test_path;
+				uri = uri + (uri[uri.length()-1] == '/' ? "" : "/") + *it;
+				index_found = true;
+				break;
+			}
+		}
 
-        if (index_found)
-        {
-            http_request.setURI(uri);
-            http_request.setHeaders(http_request.parseHeaders(request));
+		if (index_found)
+		{
+			http_request.setURI(uri);
+			http_request.setHeaders(http_request.parseHeaders(request));
 
-            std::ifstream file(_file_path.c_str());
-            if (!file.is_open())
-                return sendError(404, "Page Not Found");
+			std::ifstream file(_file_path.c_str());
+			if (!file.is_open())
+				return sendError(404, "Page Not Found");
 
-            bool isCGI = false;
-            size_t dot_pos = _file_path.find_last_of('.');
-            if (dot_pos != std::string::npos)
-            {
-                std::string extension = _file_path.substr(dot_pos);
-                if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi")
-                    isCGI = true;
-            }
+			bool isCGI = false;
+			size_t dot_pos = _file_path.find_last_of('.');
+			if (dot_pos != std::string::npos)
+			{
+				std::string extension = _file_path.substr(dot_pos);
+				if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi")
+					isCGI = true;
+			}
 
-            if (isCGI)
-                response += callCGI(request);
-            else
-            {
-                std::stringstream buf;
-                buf << file.rdbuf();
-                file.close();
+			if (isCGI)
+				response += callCGI(request);
+			else
+			{
+				std::stringstream buf;
+				buf << file.rdbuf();
+				file.close();
 
-                std::string content = buf.str();
-                std::string content_type = "text/html";
+				std::string content = buf.str();
+				std::string content_type = "text/html";
 
-                if (dot_pos != std::string::npos)
-                {
-                    std::string extension = _file_path.substr(dot_pos);
-                    if (extension == ".css")
-                        content_type = "text/css";
-                    else if (extension == ".js")
-                        content_type = "application/javascript";
-                    else if (extension == ".png")
-                        content_type = "image/png";
-                    else if (extension == ".jpg" || extension == ".jpeg")
-                        content_type = "image/jpeg";
-                    else if (extension == ".gif")
-                        content_type = "image/gif";
-                    else if (extension == ".ico")
-                        content_type = "image/x-icon";
-                    else if (extension == ".txt")
-                        content_type = "text/plain";
-                }
+				if (dot_pos != std::string::npos)
+				{
+					std::string extension = _file_path.substr(dot_pos);
+					if (extension == ".css")
+						content_type = "text/css";
+					else if (extension == ".js")
+						content_type = "application/javascript";
+					else if (extension == ".png")
+						content_type = "image/png";
+					else if (extension == ".jpg" || extension == ".jpeg")
+						content_type = "image/jpeg";
+					else if (extension == ".gif")
+						content_type = "image/gif";
+					else if (extension == ".ico")
+						content_type = "image/x-icon";
+					else if (extension == ".txt")
+						content_type = "text/plain";
+				}
 
-                std::ostringstream sizeStream;
-                sizeStream << content.size();
-                std::string sizeStr = sizeStream.str();
+				std::ostringstream sizeStream;
+				sizeStream << content.size();
+				std::string sizeStr = sizeStream.str();
 
-                size_t cookiePos = request.find("Cookie");
-                std::string sessionID = "";
-                std::string setCookie = "";
-                if (cookiePos != std::string::npos)
-                {
-                    sessionID = getCookie(request);
-                }
-                else
-                {
-                    sessionID = generateSessionId();
-                    setCookie = "Set-Cookie: SESSIONID=" + sessionID + "; Path=/; Max-Age=3600\r\n";
-                    _cookies[sessionID] = "firstname: Unknown\nlastname: Unknown\nphoto: \nschool: Unknown\n";
-                    std::string cookiePath = _root + sessionID + ".txt";
-                    std::ofstream cookieFile(cookiePath.c_str());
-                    if (!cookieFile)
-                    {
-                        logWithTimestamp("Failed to create cookie file: " + cookiePath, RED);
-                    }
-                    cookieFile << _cookies[sessionID];
-                    cookieFile.close();
+				size_t cookiePos = request.find("Cookie");
+				std::string sessionID = "";
+				std::string setCookie = "";
+				if (cookiePos != std::string::npos)
+				{
+					sessionID = getCookie(request);
+				}
+				else
+				{
+					sessionID = generateSessionId();
+					setCookie = "Set-Cookie: SESSIONID=" + sessionID + "; Path=/; Max-Age=3600\r\n";
+					_cookies[sessionID] = "firstname: Unknown\nlastname: Unknown\nphoto: \nschool: Unknown\n";
+					std::string cookiePath = _root + sessionID + ".txt";
+					std::ofstream cookieFile(cookiePath.c_str());
+					if (!cookieFile)
+					{
+						logWithTimestamp("Failed to create cookie file: " + cookiePath, RED);
+					}
+					cookieFile << _cookies[sessionID];
+					cookieFile.close();
 
-                    logWithTimestamp("New cookie [" + sessionID + "] generated", GREEN);
-                }
+					logWithTimestamp("New cookie [" + sessionID + "] generated", GREEN);
+				}
 
-                response = "HTTP/1.1 200 OK\r\n"
-                          "Content-Type: " + content_type + "\r\n"
-                          "Content-Length: " + sizeStr + "\r\n" + setCookie +
-                          "\r\n" + content;
-            }
-            return response;
-        }
-        else
-        {
-            logWithTimestamp("No index file found, checking autoindex", YELLOW);
-            bool showAutoindex = loc ? loc->getAutoindex() : _autoindex;
-            logWithTimestamp("Autoindex setting: " + std::string(showAutoindex ? "enabled" : "disabled"), YELLOW);
+				response = "HTTP/1.1 200 OK\r\n"
+					"Content-Type: " + content_type + "\r\n"
+					"Content-Length: " + sizeStr + "\r\n" + setCookie +
+					"\r\n" + content;
+			}
+			return response;
+		}
+		else
+		{
+			logWithTimestamp("No index file found, checking autoindex", YELLOW);
+			bool showAutoindex = loc ? loc->getAutoindex() : _autoindex;
+			logWithTimestamp("Autoindex setting: " + std::string(showAutoindex ? "enabled" : "disabled"), YELLOW);
 
-            if (uri[uri.length() - 1] != '/') {
-                logWithTimestamp("Redirecting to directory with trailing slash", YELLOW);
-                std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
-                                   "Location: " + uri + "/\r\n"
-                                   "Content-Length: 0\r\n\r\n";
-                return (response);
-            }
+			if (uri[uri.length() - 1] != '/') {
+				logWithTimestamp("Redirecting to directory with trailing slash", YELLOW);
+				std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
+					"Location: " + uri + "/\r\n"
+					"Content-Length: 0\r\n\r\n";
+				return (response);
+			}
 
-            if (!showAutoindex) {
-                logWithTimestamp("Autoindex disabled, returning forbidden", RED);
-                return (sendError(403, "Forbidden"));
-            }
+			if (!showAutoindex) {
+				logWithTimestamp("Autoindex disabled, returning forbidden", RED);
+				return (sendError(403, "Forbidden"));
+			}
 
-            std::string dir_path = _root + uri;
-            DIR *dir;
-            struct dirent *ent;
-            if ((dir = opendir(dir_path.c_str())) != NULL) {
-                logWithTimestamp("Generating autoindex for: " + dir_path, GREEN);
-                std::string html = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of " + uri + "</title>\n</head>\n";
-                html += "<body>\n<h1>Index of " + uri + "</h1>\n<hr>\n<ul>\n";
-                if (uri != "/")
-                {
-                    size_t last_slash = uri.substr(0, uri.length() - 1).find_last_of('/');
-                    std::string parent_path = uri.substr(0, last_slash + 1);
-                    html += "<li><a href=\"" + parent_path + "\">../</a></li>\n";
-                }
+			std::string dir_path = _root + uri;
+			DIR *dir;
+			struct dirent *ent;
+			if ((dir = opendir(dir_path.c_str())) != NULL) {
+				logWithTimestamp("Generating autoindex for: " + dir_path, GREEN);
+				std::string html = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of " + uri + "</title>\n</head>\n";
+				html += "<body>\n<h1>Index of " + uri + "</h1>\n<hr>\n<ul>\n";
+				if (uri != "/")
+				{
+					size_t last_slash = uri.substr(0, uri.length() - 1).find_last_of('/');
+					std::string parent_path = uri.substr(0, last_slash + 1);
+					html += "<li><a href=\"" + parent_path + "\">../</a></li>\n";
+				}
 
-                while ((ent = readdir(dir)) != NULL)
-                {
-                    std::string name = ent->d_name;
-                    if (name == "." || name == "..")
-                        continue;
+				while ((ent = readdir(dir)) != NULL)
+				{
+					std::string name = ent->d_name;
+					if (name == "." || name == "..")
+						continue;
 
-                    std::string full_path = dir_path + name;
-                    struct stat statbuf;
-                    if (stat(full_path.c_str(), &statbuf) == 0)
-                    {
-                        if (S_ISDIR(statbuf.st_mode))
-                        {
-                            name += "/";
-                            html += "<li><a href=\"" + name + "\">" + name + "</a></li>\n";
-                        }
-                        else
-                        {
-                            html += "<li><a href=\"" + name + "\">" + name + "</a></li>\n";
-                        }
-                    }
-                }
-                closedir(dir);
-                html += "</ul>\n<hr>\n</body>\n</html>";
+					std::string full_path = dir_path + name;
+					struct stat statbuf;
+					if (stat(full_path.c_str(), &statbuf) == 0)
+					{
+						if (S_ISDIR(statbuf.st_mode))
+						{
+							name += "/";
+							html += "<li><a href=\"" + name + "\">" + name + "</a></li>\n";
+						}
+						else
+						{
+							html += "<li><a href=\"" + name + "\">" + name + "</a></li>\n";
+						}
+					}
+				}
+				closedir(dir);
+				html += "</ul>\n<hr>\n</body>\n</html>";
 
-                std::ostringstream sizeStream;
-                sizeStream << html.size();
-                std::string sizeStr = sizeStream.str();
+				std::ostringstream sizeStream;
+				sizeStream << html.size();
+				std::string sizeStr = sizeStream.str();
 
-                response = "HTTP/1.1 200 OK\r\n"
-                          "Content-Type: text/html\r\n"
-                          "Content-Length: " + sizeStr + "\r\n"
-                          "\r\n" + html;
-                return response;
-            }
-            else
-            {
-                return sendError(403, "Forbidden");
-            }
-        }
-    }
-    else
-    {
-        http_request.setURI(uri);
-        http_request.setHeaders(http_request.parseHeaders(request));
+				response = "HTTP/1.1 200 OK\r\n"
+					"Content-Type: text/html\r\n"
+					"Content-Length: " + sizeStr + "\r\n"
+					"\r\n" + html;
+				return response;
+			}
+			else
+			{
+				return sendError(403, "Forbidden");
+			}
+		}
+	}
+	else
+	{
+		http_request.setURI(uri);
+		http_request.setHeaders(http_request.parseHeaders(request));
 
-        std::string file_path = _root + uri;
-        std::ifstream file(file_path.c_str());
-        if (!file.is_open())
-            return sendError(404, "Page Not Found");
+		std::string file_path = _root + uri;
+		std::ifstream file(file_path.c_str());
+		if (!file.is_open())
+			return sendError(404, "Page Not Found");
 
-        bool isCGI = false;
-        size_t dot_pos = file_path.find_last_of('.');
-        if (dot_pos != std::string::npos)
-        {
-            std::string extension = file_path.substr(dot_pos);
-            if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi")
-                isCGI = true;
-        }
+		bool isCGI = false;
+		size_t dot_pos = file_path.find_last_of('.');
+		if (dot_pos != std::string::npos)
+		{
+			std::string extension = file_path.substr(dot_pos);
+			if (extension == ".py" || extension == ".php" || extension == ".pl" || extension == ".sh" || extension == ".cgi")
+				isCGI = true;
+		}
 
-        if (isCGI)
-            response += callCGI(request);
-        else
-        {
-            std::stringstream buf;
-            buf << file.rdbuf();
-            file.close();
+		if (isCGI)
+			response += callCGI(request);
+		else
+		{
+			std::stringstream buf;
+			buf << file.rdbuf();
+			file.close();
 
-            std::string content = buf.str();
-            std::string content_type = "text/html";
+			std::string content = buf.str();
+			std::string content_type = "text/html";
 
-            if (dot_pos != std::string::npos)
-            {
-                std::string extension = file_path.substr(dot_pos);
-                if (extension == ".css")
-                    content_type = "text/css";
-                else if (extension == ".js")
-                    content_type = "application/javascript";
-                else if (extension == ".png")
-                    content_type = "image/png";
-                else if (extension == ".jpg" || extension == ".jpeg")
-                    content_type = "image/jpeg";
-                else if (extension == ".gif")
-                    content_type = "image/gif";
-                else if (extension == ".ico")
-                    content_type = "image/x-icon";
-                else if (extension == ".txt")
-                    content_type = "text/plain";
-            }
+			if (dot_pos != std::string::npos)
+			{
+				std::string extension = file_path.substr(dot_pos);
+				if (extension == ".css")
+					content_type = "text/css";
+				else if (extension == ".js")
+					content_type = "application/javascript";
+				else if (extension == ".png")
+					content_type = "image/png";
+				else if (extension == ".jpg" || extension == ".jpeg")
+					content_type = "image/jpeg";
+				else if (extension == ".gif")
+					content_type = "image/gif";
+				else if (extension == ".ico")
+					content_type = "image/x-icon";
+				else if (extension == ".txt")
+					content_type = "text/plain";
+			}
 
-            std::ostringstream sizeStream;
-            sizeStream << content.size();
-            std::string sizeStr = sizeStream.str();
+			std::ostringstream sizeStream;
+			sizeStream << content.size();
+			std::string sizeStr = sizeStream.str();
 
-            size_t cookiePos = request.find("Cookie");
-            std::string sessionID = "";
-            std::string setCookie = "";
-            if (cookiePos != std::string::npos)
-            {
-                sessionID = getCookie(request);
-            }
-            else
-            {
-                sessionID = generateSessionId();
-                setCookie = "Set-Cookie: SESSIONID=" + sessionID + "; Path=/; Max-Age=3600\r\n";
-                _cookies[sessionID] = "firstname: Unknown\nlastname: Unknown\nphoto: \nschool: Unknown\n";
-                std::string cookiePath = _root + sessionID + ".txt";
-                std::ofstream cookieFile(cookiePath.c_str());
-                if (!cookieFile)
-                {
-                    logWithTimestamp("Failed to create cookie file: " + cookiePath, RED);
-                }
-                cookieFile << _cookies[sessionID];
-                cookieFile.close();
+			size_t cookiePos = request.find("Cookie");
+			std::string sessionID = "";
+			std::string setCookie = "";
+			if (cookiePos != std::string::npos)
+			{
+				sessionID = getCookie(request);
+			}
+			else
+			{
+				sessionID = generateSessionId();
+				setCookie = "Set-Cookie: SESSIONID=" + sessionID + "; Path=/; Max-Age=3600\r\n";
+				_cookies[sessionID] = "firstname: Unknown\nlastname: Unknown\nphoto: \nschool: Unknown\n";
+				std::string cookiePath = _root + sessionID + ".txt";
+				std::ofstream cookieFile(cookiePath.c_str());
+				if (!cookieFile)
+				{
+					logWithTimestamp("Failed to create cookie file: " + cookiePath, RED);
+				}
+				cookieFile << _cookies[sessionID];
+				cookieFile.close();
 
-                logWithTimestamp("New cookie [" + sessionID + "] generated", GREEN);
-            }
+				logWithTimestamp("New cookie [" + sessionID + "] generated", GREEN);
+			}
 
-            response = "HTTP/1.1 200 OK\r\n"
-                      "Content-Type: " + content_type + "\r\n"
-                      "Content-Length: " + sizeStr + "\r\n" + setCookie +
-                      "\r\n" + content;
-        }
-    }
+			response = "HTTP/1.1 200 OK\r\n"
+				"Content-Type: " + content_type + "\r\n"
+				"Content-Length: " + sizeStr + "\r\n" + setCookie +
+				"\r\n" + content;
+		}
+	}
 
-    return response;
+	return response;
 }
 
 std::string Server::handleDeleteRequest(const std::string &request)
 {
-    HTTPRequest http_request;
+	HTTPRequest http_request;
 
-    std::string first_line = request.substr(0, request.find("\r\n"));
-    std::vector<std::string> request_splitted = ft_split(first_line, ' ');
-    if (request_splitted.size() != 3)
-        return sendError(400, "Bad Request");
-    if (request_splitted[2].compare(GOOD_HTTP_VERSION))
-        return sendError(505, "HTTP Version Not Supported");
+	std::string first_line = request.substr(0, request.find("\r\n"));
+	std::vector<std::string> request_splitted = ft_split(first_line, ' ');
+	if (request_splitted.size() != 3)
+		return sendError(400, "Bad Request");
+	if (request_splitted[2].compare(GOOD_HTTP_VERSION))
+		return sendError(505, "HTTP Version Not Supported");
 
-    logWithTimestamp("DELETE [" + request_splitted[1] + "] request received", GREEN);
+	logWithTimestamp("DELETE [" + request_splitted[1] + "] request received", GREEN);
 
-    std::string uri = request_splitted[1];
-    normalizePath(uri);
-    const Location *loc = getExactLocation(uri);
-    if (loc && !loc->isMethodAllowed("DELETE"))
-    {
-        return (sendError(405, "Method Not Allowed"));
-    }
-    std::string file_path = _root + uri;
+	std::string uri = request_splitted[1];
+	normalizePath(uri);
+	const Location *loc = getExactLocation(uri);
+	if (loc && !loc->isMethodAllowed("DELETE"))
+	{
+		return (sendError(405, "Method Not Allowed"));
+	}
+	std::string file_path = _root + uri;
 
-    if (access(file_path.c_str(), F_OK) != 0)
-        return sendError(404, "Page Not Found");
-    struct stat path_stat;
-    if (stat(file_path.c_str(), &path_stat) != 0)
-        return sendError(500, "Internal Server Error");
-    if (S_ISDIR(path_stat.st_mode))
-        return sendError(403, "Forbidden");
-    if (remove(file_path.c_str()) != 0)
-        return sendError(500, "Internal Server Error");
-    std::string response = "HTTP/1.1 204 No Content\r\n"
-                           "Content-Length: 0\r\n"
-                           "\r\n";
+	if (access(file_path.c_str(), F_OK) != 0)
+		return sendError(404, "Page Not Found");
+	struct stat path_stat;
+	if (stat(file_path.c_str(), &path_stat) != 0)
+		return sendError(500, "Internal Server Error");
+	if (S_ISDIR(path_stat.st_mode))
+		return sendError(403, "Forbidden");
+	if (remove(file_path.c_str()) != 0)
+		return sendError(500, "Internal Server Error");
+	std::string response = "HTTP/1.1 204 No Content\r\n"
+		"Content-Length: 0\r\n"
+		"\r\n";
 
-    std::string sessionId = getCookie(request);
-    if (sessionId.empty())
-        sessionId = "anonymous";
+	std::string sessionId = getCookie(request);
+	if (sessionId.empty())
+		sessionId = "anonymous";
 
-    std::string keysArray[] = {"firstname", "lastname", "school"};
-    std::vector<std::string> keys(keysArray, keysArray + 3);
-    ensureSessionFileExists(sessionId, keys);
+	std::string keysArray[] = {"firstname", "lastname", "school"};
+	std::vector<std::string> keys(keysArray, keysArray + 3);
+	ensureSessionFileExists(sessionId, keys);
 
-    return (response);
+	return (response);
 }
 
 std::string Server::parseRequest(const std::string &request)
 {
-    std::string first_line = request.substr(0, request.find("\r\n"));
-    if (first_line.find("GET") != std::string::npos)
-        return (Server::handleGetRequest(request));
-    if (first_line.find("POST") != std::string::npos)
-        return (Server::handlePostRequest(request));
-    if (first_line.find("DELETE") != std::string::npos)
-        return (Server::handleDeleteRequest(request));
-    return (sendError(400, "Bad Request"));
+	std::string first_line = request.substr(0, request.find("\r\n"));
+	if (first_line.find("GET") != std::string::npos)
+		return (Server::handleGetRequest(request));
+	if (first_line.find("POST") != std::string::npos)
+		return (Server::handlePostRequest(request));
+	if (first_line.find("DELETE") != std::string::npos)
+		return (Server::handleDeleteRequest(request));
+	return (sendError(400, "Bad Request"));
 }

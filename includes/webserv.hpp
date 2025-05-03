@@ -66,6 +66,7 @@
 #define SIZE_LOCATION 8
 #define UNSET -1
 #define DEFAULT_MAX_BODY_SIZE 1000000
+#define TIMEOUT_SECOND 5
 
 class Server;
 class Location;
