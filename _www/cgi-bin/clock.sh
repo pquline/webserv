@@ -12,7 +12,8 @@ cat <<'EOF'
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digital Clock</title>
-	<link rel="stylesheet" href="../styles.css">
+    <link rel="icon" href="/favicon.ico">
+	<link rel="stylesheet" href="/styles.css">
     <style>
 
         .digital-clock {

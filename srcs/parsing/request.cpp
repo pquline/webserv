@@ -588,12 +588,9 @@ std::string Server::handleGetRequest(const std::string &request)
 		}
 		else
 		{
-			logWithTimestamp("No index file found, checking autoindex", YELLOW);
 			bool showAutoindex = loc ? loc->getAutoindex() : _autoindex;
-			logWithTimestamp("Autoindex setting: " + std::string(showAutoindex ? "enabled" : "disabled"), YELLOW);
 
 			if (uri[uri.length() - 1] != '/') {
-				logWithTimestamp("Redirecting to directory with trailing slash", YELLOW);
 				std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
 					"Location: " + uri + "/\r\n"
 					"Content-Length: 0\r\n\r\n";
@@ -601,7 +598,6 @@ std::string Server::handleGetRequest(const std::string &request)
 			}
 
 			if (!showAutoindex) {
-				logWithTimestamp("Autoindex disabled, returning forbidden", RED);
 				return (sendError(403, "Forbidden"));
 			}
 
@@ -609,7 +605,6 @@ std::string Server::handleGetRequest(const std::string &request)
 			DIR *dir;
 			struct dirent *ent;
 			if ((dir = opendir(dir_path.c_str())) != NULL) {
-				logWithTimestamp("Generating autoindex for: " + dir_path, GREEN);
 				std::string html = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of " + uri + "</title>\n</head>\n";
 				html += "<body>\n<h1>Index of " + uri + "</h1>\n<hr>\n<ul>\n";
 				if (uri != "/")

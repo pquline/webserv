@@ -4,6 +4,5 @@ import time
 import sys
 
 while True:
-    sys.stdout.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]</br>")
-    sys.stdout.flush()
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]</br>")
     time.sleep(1)
