@@ -283,11 +283,14 @@ std::string Server::callCGI(const std::string &request)
         interpreter = "";
 
     int pipefd[2];
-    if (pipe(pipefd) == -1)
+    int pipein[2];
+    if (pipe(pipefd) == -1 || pipe(pipein) == -1)
     {
         logWithTimestamp("Failed to create pipe", RED);
         close(pipefd[0]);
         close(pipefd[1]);
+        close(pipein[0]);
+        close(pipein[1]);
         return sendError(500, "Internal Server Error (pipe)");
     }
 
@@ -297,14 +300,19 @@ std::string Server::callCGI(const std::string &request)
         logWithTimestamp("Failed to fork", RED);
         close(pipefd[0]);
         close(pipefd[1]);
+        close(pipein[0]);
+        close(pipein[1]);
         return sendError(500, "Internal Server Error (fork)");
     }
 
     if (pid == 0)
     {
         close(pipefd[0]);
+        close(pipein[1]);
         dup2(pipefd[1], STDOUT_FILENO);
+        dup2(pipein[0], STDIN_FILENO);
         close(pipefd[1]);
+        close(pipein[0]);
 
         std::string contentLength = getHeader(request, "Content-Length");
         std::string contentType = getHeader(request, "Content-Type");
@@ -356,54 +364,65 @@ std::string Server::callCGI(const std::string &request)
     }
     else
     {
-		int status;
-		time_t start = std::time(NULL);
+        close(pipefd[1]);
+        close(pipein[0]);
 
-		while (true)
-		{
-			pid_t result = waitpid(pid, &status, WNOHANG);
+        if (request.find("POST") != std::string::npos)
+        {
+            size_t header_end = request.find("\r\n\r\n");
+            if (header_end != std::string::npos)
+            {
+                std::string body = request.substr(header_end + 4);
+                write(pipein[1], body.c_str(), body.size());
+            }
+        }
+        close(pipein[1]);
 
-			if (result < 0)
-			{
-				close(pipefd[1]);
-				close(pipefd[0]);
-				return sendError(500, "Internal Server Error (waitpid)");
-			}
-			else if (result == 0)
-			{
-				if (std::time(NULL) - start >= TIMEOUT_SECOND)
-				{
-					close(pipefd[1]);
-					close(pipefd[0]);
-					kill(pid, SIGKILL);
-					waitpid(pid, &status, 0);
-					return sendError(504, "Gateway Timeout");
-				}
-			}
-			else
-			{
-				close(pipefd[1]);
-				char buffer[8192] = {0};
-				ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
-				close(pipefd[0]);
+        int status;
+        time_t start = std::time(NULL);
 
-				if (n > 0)
-				{
-					std::ostringstream stream;
-					stream << strlen(buffer);
-					std::string response =
-						"HTTP/1.1 200 OK\r\n"
-						"Content-Type: text/html\r\n"
-						"Content-Length: " +
-						stream.str() + "\r\n"
-						"\r\n" +
-						std::string(buffer);
-					return (response.c_str());
-				}
-			}
-		}
-	}
-	return (sendError(500, "CGI Output Error"));
+        while (true)
+        {
+            pid_t result = waitpid(pid, &status, WNOHANG);
+
+            if (result < 0)
+            {
+                close(pipefd[0]);
+                return sendError(500, "Internal Server Error (waitpid)");
+            }
+            else if (result == 0)
+            {
+                if (std::time(NULL) - start >= TIMEOUT_SECOND)
+                {
+                    close(pipefd[0]);
+                    kill(pid, SIGKILL);
+                    waitpid(pid, &status, 0);
+                    return sendError(504, "Gateway Timeout");
+                }
+            }
+            else
+            {
+                char buffer[8192] = {0};
+                ssize_t n = read(pipefd[0], buffer, sizeof(buffer) - 1);
+                close(pipefd[0]);
+
+                if (n > 0)
+                {
+                    std::ostringstream stream;
+                    stream << strlen(buffer);
+                    std::string response =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: text/html\r\n"
+                        "Content-Length: " +
+                        stream.str() + "\r\n"
+                        "\r\n" +
+                        std::string(buffer);
+                    return (response.c_str());
+                }
+            }
+        }
+    }
+    return (sendError(500, "CGI Output Error"));
 }
 
 static std::string generateSessionId()
