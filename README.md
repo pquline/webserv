@@ -4,15 +4,16 @@ A lightning-fast ⚡ custom HTTP server implementation in C++98, designed to han
 
 ## ✨ Features
 
-- 🎯 Multi-server configuration support
+- 🎯 Multi-server configuration support with multiple ports
 - 🛠️ Configurable server blocks with multiple locations
 - 🔄 Support for GET, POST, and DELETE methods
-- 🐍 CGI script execution
+- 🐍 CGI script execution support
 - 📂 Auto-indexing for directories
 - ❌ Custom error pages
 - 📏 Client body size limits
 - 🌐 Server name and alias support
-- 🔀 Redirection support
+- 🔀 URL redirection support
+- 📁 Multiple root directories support
 
 ## 📋 Requirements
 
@@ -36,46 +37,17 @@ make clean
 make re
 ```
 
-## ⚙️ Configuration
-
-The server is configured using a configuration file (`webserv.conf`). Here's an example configuration:
-
-```nginx
-server {
-    listen 8080;
-    client_max_body_size 80000000;
-    server_name example.com;
-    root ./www/;
-    autoindex on;
-
-    location / {
-        index index.html;
-        methods GET POST DELETE;
-    }
-}
-```
-
 ### 🔧 Configuration Options
 
-- 🎧 `listen`: Port number(s) to listen on
+- 🎧 `listen`: Port number(s) to listen on (multiple ports supported)
 - 📦 `client_max_body_size`: Maximum size of client request body
 - 🌐 `server_name`: Server name and optional aliases
 - 📁 `root`: Root directory for serving files
 - 📂 `autoindex`: Enable/disable directory listing
-- 🔄 `methods`: Allowed HTTP methods
+- 🔄 `methods`: Allowed HTTP methods (GET, POST, DELETE)
 - ❌ `error_page`: Custom error pages
 - 🔀 `redirection`: URL redirections
-
-## 📁 Project Structure
-
-```
-webserv/
-├── 📂 includes/     # Header files
-├── 📂 srcs/         # Source files
-├── 🌐 www/          # Web root directory
-├── 🔧 Makefile      # Build configuration
-└── ⚙️ webserv.conf  # Server configuration
-```
+- 📑 `index`: Default index files for locations
 
 ## 🚀 Usage
 
