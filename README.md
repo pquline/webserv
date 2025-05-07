@@ -1,5 +1,7 @@
 # 🚀 WebServ
 
+![Webserv](https://github.com/user-attachments/assets/a0bbd1bd-dfb1-4387-9ba9-2e4a6981bda1)
+
 A lightning-fast ⚡ custom HTTP server implementation in C++98, designed to handle HTTP requests and serve web content with style! 🎨
 
 Team: [icr4m](https://github.com/icr4m), [Roychrltt](https://github.com/Roychrltt), [pquline](https://github.com/pquline)
