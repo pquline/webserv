@@ -2,6 +2,8 @@
 
 A lightning-fast ⚡ custom HTTP server implementation in C++98, designed to handle HTTP requests and serve web content with style! 🎨
 
+Team: [icr4m](https://github.com/icr4m), [Roychrltt](https://github.com/Roychrltt), [pquline](https://github.com/pquline)
+
 ## ✨ Features
 
 - 🎯 Multi-server configuration support
@@ -11,7 +13,7 @@ A lightning-fast ⚡ custom HTTP server implementation in C++98, designed to han
 - 📂 Auto-indexing for directories
 - ❌ Custom error pages
 - 📏 Client body size limits
-- 🌐 Server name and alias support
+- 🌐 Server name support
 - 🔀 Redirection support
 
 ## 📋 Requirements
