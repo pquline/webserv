@@ -4,6 +4,10 @@
 
 A lightning-fast ⚡ custom HTTP server implementation in C++98, designed to handle HTTP requests and serve web content with style! 🎨
 
+## 🏫 About
+
+This project is part of the 42 school curriculum, where we implement a custom HTTP server from scratch. As students at 42 Paris, we've created this server to demonstrate our understanding of web protocols, socket programming, and system programming concepts.
+
 Team: [icr4m](https://github.com/icr4m), [Roychrltt](https://github.com/Roychrltt), [pquline](https://github.com/pquline)
 
 ## ✨ Features
